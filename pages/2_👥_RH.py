@@ -1,4 +1,3 @@
-import io
 from pathlib import Path
 from fpdf import FPDF
 import numpy as np
@@ -7,12 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# 1. Vérification de l'authentification
-if not st.session_state.get("authentication_status"):
-  st.warning("Accès restreint. Veuillez vous connecter sur la page d'accueil.")
-  st.stop()
-
-# 2. Configuration & Design Corporate
+# 1. Configuration & Design Corporate
 st.set_page_config(
     page_title="Direction RH & Contrôle Social", page_icon="👥", layout="wide"
 )
@@ -44,7 +38,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# En-tête avec Logo
+# En-tête avec Logo si disponible
 chemin_racine = Path(__file__).resolve().parent.parent
 chemin_logo = chemin_racine / "assets" / "logo.png"
 
@@ -59,20 +53,18 @@ with col_head2:
       " social et développement des talents."
   )
 
-# Déconnexion dans la barre latérale
-if "authenticator" in st.session_state:
-  st.sidebar.write(f"👤 Connecté : **{st.session_state['name']}**")
-  st.session_state["authenticator"].logout("Se déconnecter", "sidebar")
 
-
-# 3. Chargement des données RH
+# 2. Chargement des données RH
 @st.cache_data
 def charger_donnees_rh():
   chemin_csv = chemin_racine / "donnees_rh.csv"
   if not chemin_csv.exists():
     chemin_csv = Path(__file__).resolve().parent / "donnees_rh.csv"
   if not chemin_csv.exists():
-    st.error("Fichier 'donnees_rh.csv' introuvable.")
+    st.error(
+        "Fichier 'donnees_rh.csv' introuvable. Veuillez vérifier qu'il est bien"
+        " présent à la racine du projet."
+    )
     st.stop()
   df = pd.read_csv(chemin_csv)
   df["effectif_total"] = df["effectif_cdi"] + df["effectif_cdd"]
@@ -81,7 +73,7 @@ def charger_donnees_rh():
 
 df_rh = charger_donnees_rh()
 
-# 4. Filtres de navigation
+# 3. Filtres de navigation latérale
 with st.sidebar:
   st.header("⚙️ Paramètres d'Analyse")
   mois_disponibles = ["Tous les mois"] + list(df_rh["mois"].unique())
@@ -93,14 +85,14 @@ with st.sidebar:
   dept_choisi = st.selectbox("Département", depts_disponibles, index=0)
   devise = st.radio("Devise", ["MAD", "EUR"])
 
-# Filtrage
+# Filtrage du DataFrame
 df_vue = df_rh.copy()
 if mois_choisi != "Tous les mois":
   df_vue = df_vue[df_vue["mois"] == mois_choisi]
 if dept_choisi != "Tous les services":
   df_vue = df_vue[df_vue["departement"] == dept_choisi]
 
-# 5. Calculs des Métriques Avancées de Contrôle Social
+# 4. Calculs des Métriques Avancées de Contrôle Social
 nb_mois = df_vue["mois"].nunique()
 effectif_actuel = (
     df_vue["effectif_total"].sum()
@@ -121,7 +113,7 @@ cout_moyen_mensuel = (
     else 0
 )
 
-# Taux de turnover & Coût financier estimé du turnover
+# Taux de turnover & Coût financier estimé
 total_entrees = df_vue["recrutements"].sum()
 total_sorties = df_vue["departs"].sum()
 turnover_pct = (
@@ -133,7 +125,6 @@ turnover_pct = (
     if effectif_actuel > 0
     else 0
 )
-# Coût estimé du turnover : ~6 mois de salaire moyen par collaborateur démissionnaire/remplacé
 cout_estime_turnover_kmad = total_sorties * (cout_moyen_mensuel * 6 / 1000)
 
 # Taux d'absentéisme
@@ -141,7 +132,7 @@ heures_abs = df_vue["heures_absence"].sum()
 heures_theo = df_vue["heures_theoriques"].sum()
 taux_absenteisme = (heures_abs / heures_theo * 100) if heures_theo > 0 else 0
 
-# Taux de formation (Heures de formation par salarié)
+# Effort de formation
 heures_formation_total = df_vue["heures_formation"].sum()
 heures_formation_par_tete = (
     (heures_formation_total / effectif_actuel) if effectif_actuel > 0 else 0
@@ -155,7 +146,7 @@ part_femmes = (
     else 0
 )
 
-# 6. Onglets d'analyse thématique
+# 5. Onglets d'analyse
 tab_synthese, tab_demographie, tab_climat, tab_rapport = st.tabs([
     "📊 Synthèse Capital Humain",
     "👥 Démographie & Compétences",
@@ -187,7 +178,6 @@ with tab_synthese:
 
   st.divider()
 
-  # Évolution Masse Salariale vs Effectifs
   col_s1, col_s2 = st.columns(2)
   with col_s1:
     st.subheader("Évolution Mensuelle de la Masse Salariale")
@@ -245,22 +235,22 @@ with tab_demographie:
   total_jeunes = df_vue["tranche_moins_30"].sum()
   total_inter = df_vue["tranche_30_45"].sum()
   total_seniors = df_vue["tranche_plus_45"].sum()
+  total_age = total_jeunes + total_inter + total_seniors
 
   p1.metric(
       "< 30 ans (Jeunes Talents)",
-      f"{(total_jeunes / (total_jeunes + total_inter + total_seniors) * 100):.1f}%",
+      f"{(total_jeunes / total_age * 100 if total_age > 0 else 0):.1f}%",
   )
   p2.metric(
       "30 - 45 ans (Cœur d'Activité)",
-      f"{(total_inter / (total_jeunes + total_inter + total_seniors) * 100):.1f}%",
+      f"{(total_inter / total_age * 100 if total_age > 0 else 0):.1f}%",
   )
   p3.metric(
       "> 45 ans (Seniors / Expertise)",
-      f"{(total_seniors / (total_jeunes + total_inter + total_seniors) * 100):.1f}%",
+      f"{(total_seniors / total_age * 100 if total_age > 0 else 0):.1f}%",
   )
   p4.metric("Indice Parité Femmes", f"{part_femmes:.1f}%")
 
-  # Graphique de répartition des tranches d'âge par département
   df_age = (
       df_vue.groupby("departement", as_index=False)[
           ["tranche_moins_30", "tranche_30_45", "tranche_plus_45"]
@@ -325,7 +315,6 @@ with tab_climat:
       help="Coût estimé des départs (remplacement, perte de savoir-faire).",
   )
 
-  # Alertes automatiques
   st.markdown("### 🔔 Diagnostic Automatique de Climat Social")
   a1, a2 = st.columns(2)
   with a1:
@@ -351,7 +340,6 @@ with tab_climat:
           f" ({turnover_pct:.2f}%)."
       )
 
-  # Graphique combiné Absentéisme & Masse Salariale
   df_abs = df_vue.groupby("mois", as_index=False).agg(
       {"heures_absence": "sum", "heures_theoriques": "sum"}
   )
@@ -424,7 +412,6 @@ with tab_rapport:
     pdf.line(15, pdf.get_y(), 195, pdf.get_y())
     pdf.ln(8)
 
-    # 1. Structure de l'Emploi
     pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(15, 23, 42)
     pdf.cell(0, 8, "1. Structure de l'Emploi et Masse Salariale", ln=True)
@@ -432,19 +419,19 @@ with tab_rapport:
 
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(90, 8, f"  - Effectif Total Cloture : {effectif} salaries", 1)
+    ms_txt = f"  - Masse Salariale Totale : {ms:,.0f} k{dev}".encode(
+        "latin-1", "replace"
+    ).decode("latin-1")
+    pdf.cell(90, 8, ms_txt, 1, ln=True)
+    cm_txt = f"  - Cout Moyen / Collaborateur : {cout_moyen:,.0f} {dev}/mois".encode(
+        "latin-1", "replace"
+    ).decode("latin-1")
+    pdf.cell(90, 8, cm_txt, 1)
     pdf.cell(
-        90, 8, f"  - Masse Salariale Totale : {ms:,.0f} k{dev}".encode("latin-1", "replace").decode("latin-1"), 1, ln=True
+        90, 8, f"  - Heures de Formation Dispensees : {formation_h} h", 1, ln=True
     )
-    pdf.cell(
-        90,
-        8,
-        f"  - Cout Moyen / Collaborateur : {cout_moyen:,.0f} {dev}/mois".encode("latin-1", "replace").decode("latin-1"),
-        1,
-    )
-    pdf.cell(90, 8, f"  - Heures de Formation Dispensees : {formation_h} h", 1, ln=True)
     pdf.ln(6)
 
-    # 2. Climat Social
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, "2. Indicateurs de Climat Social & Rotation", ln=True)
     pdf.ln(2)
@@ -454,7 +441,6 @@ with tab_rapport:
     pdf.cell(90, 8, f"  - Taux de Turnover : {to_taux:.2f} %", 1, ln=True)
     pdf.ln(6)
 
-    # 3. Commentaires & Audit
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, "3. Diagnostic & Plan d'Action Social", ln=True)
     pdf.ln(2)
@@ -462,10 +448,12 @@ with tab_rapport:
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(51, 65, 85)
     avis = (
-        f"L'effectif se stabilise a {effectif} collaborateurs avec une masse salariale controlee "
-        f"a {ms:,.0f} k{dev}. L'effort de formation soutenu ({formation_h} heures) accompagne la montee en competence.\n"
-        f"Le controleur de gestion sociale recommande une surveillance sur le taux d'absenteisme ({abs_taux:.2f}%) "
-        "et la mise en place d'actions de retention sur les metiers sous tension."
+        f"L'effectif se stabilise a {effectif} collaborateurs avec une masse"
+        f" salariale controlee a {ms:,.0f} k{dev}. L'effort de formation"
+        f" soutenu ({formation_h} heures) accompagne la montee en"
+        " competence.\nLe controleur de gestion sociale recommande une"
+        f" surveillance sur le taux d'absenteisme ({abs_taux:.2f}%) et la mise"
+        " en place d'actions de retention sur les metiers sous tension."
     )
     pdf.multi_cell(180, 5, avis, 1)
 
