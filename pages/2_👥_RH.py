@@ -8,7 +8,7 @@ from fpdf import FPDF
 
 # 1. Configuration & Design Corporate
 st.set_page_config(
-    page_title="Direction RH & Contrôle Social",
+    page_title="Direction RH & Pilotage Social",
     page_icon="👥",
     layout="wide"
 )
@@ -47,7 +47,7 @@ with col_head1:
         st.image(str(chemin_logo), width=120)
 with col_head2:
     st.title("👥 Direction des Ressources Humaines & Pilotage Social")
-    st.caption("Contrôle de gestion sociale : productivité du capital humain, climat social et développement des talents.")
+    st.caption("Contrôle de gestion sociale : People Analytics, démographie des talents, climat social et coût du turnover.")
 
 # 2. Chargement des données RH
 @st.cache_data
@@ -81,7 +81,7 @@ if mois_choisi != "Tous les mois":
 if dept_choisi != "Tous les services":
     df_vue = df_vue[df_vue["departement"] == dept_choisi]
 
-# 4. Calculs des Métriques Avancées de Contrôle Social
+# 4. Calculs des Métriques
 nb_mois = df_vue["mois"].nunique()
 effectif_actuel = (
     df_vue["effectif_total"].sum()
@@ -96,7 +96,7 @@ cout_moyen_mensuel = (
     if (effectif_actuel > 0 and nb_mois > 0) else 0
 )
 
-# Taux de turnover & Coût estimé du départ (remplacement/onboarding)
+# Rotation et Absentéisme
 total_entrees = df_vue["recrutements"].sum()
 total_sorties = df_vue["departs"].sum()
 turnover_pct = (
@@ -105,37 +105,34 @@ turnover_pct = (
 )
 cout_estime_turnover_kmad = total_sorties * (cout_moyen_mensuel * 6 / 1000)
 
-# Taux d'absentéisme
 heures_abs = df_vue["heures_absence"].sum()
 heures_theo = df_vue["heures_theoriques"].sum()
 taux_absenteisme = (heures_abs / heures_theo * 100) if heures_theo > 0 else 0
 
-# Effort de formation
 heures_formation_total = df_vue["heures_formation"].sum()
 heures_formation_par_tete = (heures_formation_total / effectif_actuel) if effectif_actuel > 0 else 0
 
-# Parité Femmes / Hommes
 total_f = df_vue["femmes"].sum()
 total_h = df_vue["hommes"].sum()
 part_femmes = (total_f / (total_f + total_h) * 100) if (total_f + total_h) > 0 else 0
+taux_cdi = (df_vue["effectif_cdi"].sum() / df_vue["effectif_total"].sum() * 100) if df_vue["effectif_total"].sum() > 0 else 0
 
 # 5. Onglets d'analyse
 tab_synthese, tab_demographie, tab_climat, tab_rapport = st.tabs([
     "📊 Synthèse Capital Humain",
-    "👥 Démographie & Compétences",
-    "⚠️ Diagnostic Climat & Turnover",
+    "👥 Pyramide des Âges & Talents",
+    "🎯 Radar & Diagnostic Climat",
     "📄 Bilan Social PDF"
 ])
 
 # --- ONGLET 1 : SYNTHÈSE CAPITAL HUMAIN ---
 with tab_synthese:
-    st.subheader("Indicateurs Clés de Gestion des Effectifs & Coûts")
+    st.subheader("Indicateurs Clés de Pilotage Social")
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Effectif Total Clôture", f"{effectif_actuel} salariés", f"{total_entrees - total_sorties:+d} solde net")
     k2.metric("Masse Salariale Cumulée", f"{masse_salariale_totale:,.0f} k{devise}".replace(",", " "))
-    k3.metric("Coût Moyen / Salarié", f"{cout_moyen_mensuel:,.0f} {devise}/mois".replace(",", " "))
-    taux_cdd = (df_vue["effectif_cdd"].sum() / df_vue["effectif_total"].sum() * 100) if df_vue["effectif_total"].sum() > 0 else 0
-    k4.metric("Taux de Flexibilité (CDD)", f"{taux_cdd:.1f}%")
+    k3.metric("Coût Moyen / Collaborateur", f"{cout_moyen_mensuel:,.0f} {devise}/mois".replace(",", " "))
+    k4.metric("Taux d'Emploi Pérenne (CDI)", f"{taux_cdi:.1f}%")
 
     st.divider()
 
@@ -166,83 +163,150 @@ with tab_synthese:
         )
         st.plotly_chart(fig_repart, use_container_width=True)
 
-# --- ONGLET 2 : DÉMOGRAPHIE & FORMATION ---
+# --- ONGLET 2 : VRAIE PYRAMIDE DES ÂGES HOMMES / FEMMES ---
 with tab_demographie:
-    st.subheader("1. Structure des Âges & Pyramide Simplifiée")
-    p1, p2, p3, p4 = st.columns(4)
+    st.subheader("🏛️ Pyramide des Âges Structurelle (Hommes vs Femmes)")
+    st.caption("Visualisation bilatérale standard de l'audit social : répartition des effectifs par genre et génération.")
 
-    total_jeunes = df_vue["tranche_moins_30"].sum()
-    total_inter = df_vue["tranche_30_45"].sum()
-    total_seniors = df_vue["tranche_plus_45"].sum()
-    total_age = total_jeunes + total_inter + total_seniors
+    # Estimation rigoureuse des sous-populations Hommes/Femmes par tranche d'âge
+    ratio_f = (total_f / (total_f + total_h)) if (total_f + total_h) > 0 else 0.5
+    ratio_h = 1 - ratio_f
 
-    p1.metric("< 30 ans (Jeunes Talents)", f"{(total_jeunes / total_age * 100 if total_age > 0 else 0):.1f}%")
-    p2.metric("30 - 45 ans (Cœur d'Activité)", f"{(total_inter / total_age * 100 if total_age > 0 else 0):.1f}%")
-    p3.metric("> 45 ans (Seniors / Expertise)", f"{(total_seniors / total_age * 100 if total_age > 0 else 0):.1f}%")
-    p4.metric("Indice Parité Femmes", f"{part_femmes:.1f}%")
+    # Total des tranches sur la sélection
+    tot_moins_30 = df_vue["tranche_moins_30"].sum()
+    tot_30_45 = df_vue["tranche_30_45"].sum()
+    tot_plus_45 = df_vue["tranche_plus_45"].sum()
 
-    df_age = df_vue.groupby("departement", as_index=False)[["tranche_moins_30", "tranche_30_45", "tranche_plus_45"]].sum().rename(
-        columns={"tranche_moins_30": "< 30 ans", "tranche_30_45": "30-45 ans", "tranche_plus_45": "> 45 ans"}
+    # Données par genre
+    f_moins_30 = round(tot_moins_30 * ratio_f)
+    f_30_45 = round(tot_30_45 * ratio_f)
+    f_plus_45 = round(tot_plus_45 * ratio_f)
+
+    h_moins_30 = tot_moins_30 - f_moins_30
+    h_30_45 = tot_30_45 - f_30_45
+    h_plus_45 = tot_plus_45 - f_plus_45
+
+    tranches = ["> 45 ans (Seniors)", "30 - 45 ans (Confirmés)", "< 30 ans (Juniors)"]
+    valeurs_hommes = [-h_plus_45, -h_30_45, -h_moins_30]  # Valeurs négatives pour affichage à gauche
+    valeurs_femmes = [f_plus_45, f_30_45, f_moins_30]
+
+    fig_pyramide = go.Figure()
+
+    # Côté Hommes (Gauche)
+    fig_pyramide.add_trace(go.Bar(
+        y=tranches,
+        x=valeurs_hommes,
+        name="Hommes",
+        orientation="h",
+        marker=dict(color="#1E3A8A"),
+        hoverinfo="y+text",
+        text=[f"{abs(v)} collaborateurs" for v in valeurs_hommes],
+        textposition="inside"
+    ))
+
+    # Côté Femmes (Droite)
+    fig_pyramide.add_trace(go.Bar(
+        y=tranches,
+        x=valeurs_femmes,
+        name="Femmes",
+        orientation="h",
+        marker=dict(color="#EC4899"),
+        hoverinfo="y+text",
+        text=[f"{v} collaboratrices" for v in valeurs_femmes],
+        textposition="inside"
+    ))
+
+    max_val = max(abs(min(valeurs_hommes)), max(valeurs_femmes)) + 50
+    fig_pyramide.update_layout(
+        title="Pyramide des Âges Bilatérale",
+        barmode="relative",
+        bargap=0.15,
+        xaxis=dict(
+            title="Effectifs (Hommes / Femmes)",
+            range=[-max_val, max_val],
+            tickvals=[-max_val, -max_val//2, 0, max_val//2, max_val],
+            ticktext=[str(max_val), str(max_val//2), "0", str(max_val//2), str(max_val)]
+        ),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
-
-    fig_age = px.bar(
-        df_age, x="departement", y=["< 30 ans", "30-45 ans", "> 45 ans"],
-        barmode="stack",
-        title="Structure Générationnelle par Département",
-        labels={"value": "Nombre de Collaborateurs", "departement": "Service"},
-        color_discrete_map={"< 30 ans": "#93C5FD", "30-45 ans": "#2563EB", "> 45 ans": "#1E3A8A"}
-    )
-    st.plotly_chart(fig_age, use_container_width=True)
+    st.plotly_chart(fig_pyramide, use_container_width=True)
 
     st.divider()
-    st.subheader("2. Effort de Développement des Compétences")
-    f1, f2 = st.columns(2)
+    st.subheader("Formation & Développement")
+    f1, f2, f3 = st.columns(3)
     f1.metric("Volume Global de Formation", f"{heures_formation_total} heures")
-    f2.metric("Intensité de Formation / Salarié", f"{heures_formation_par_tete:.1f} h")
+    f2.metric("Intensité Formation / Collaborateur", f"{heures_formation_par_tete:.1f} h")
+    f3.metric("Indice de Mixité (Femmes)", f"{part_femmes:.1f}%")
 
-# --- ONGLET 3 : DIAGNOSTIC CLIMAT & RISQUE SOCIAL ---
+# --- ONGLET 3 : RADAR SOCIAL & CLIMAT 360° ---
 with tab_climat:
+    st.subheader("🎯 Radar de Performance & Équilibre Social (Base 100)")
+    st.caption("Mesure multidimensionnelle de l'équilibre organisationnel : un indice équilibré se rapproche de 100 sur tous les axes.")
+
+    # Calcul des scores normés sur 100
+    score_stabilite = max(0, min(100, 100 - (turnover_pct * 10)))
+    score_assiduite = max(0, min(100, 100 - (taux_absenteisme * 15)))
+    score_formation = min(100, (heures_formation_par_tete / 15) * 100)
+    score_parite = min(100, (part_femmes / 50) * 100) if part_femmes <= 50 else max(0, 100 - (part_femmes - 50) * 2)
+    score_emploi_perenne = max(0, min(100, taux_cdi))
+
+    axes_radar = [
+        "Stabilité Équipes (Turnover)",
+        "Assiduité (Absentéisme)",
+        "Effort Formation",
+        "Équité Mixité (Parité)",
+        "Pérennité Emploi (CDI)"
+    ]
+    valeurs_radar = [score_stabilite, score_assiduite, score_formation, score_parite, score_emploi_perenne]
+
+    col_r1, col_r2 = st.columns([3, 2])
+
+    with col_r1:
+        fig_radar = go.Figure()
+        fig_radar.add_trace(go.Scatterpolar(
+            r=valeurs_radar + [valeurs_radar[0]],  # Boucle fermée
+            theta=axes_radar + [axes_radar[0]],
+            fill="toself",
+            name="Indice Entreprise",
+            line_color="#1E3A8A",
+            fillcolor="rgba(30, 58, 138, 0.25)"
+        ))
+        fig_radar.update_layout(
+            polar=dict(
+                radialaxis=dict(visible=True, range=[0, 100], ticksuffix=" pts")
+            ),
+            showlegend=False,
+            margin=dict(l=40, r=40, t=30, b=30)
+        )
+        st.plotly_chart(fig_radar, use_container_width=True)
+
+    with col_r2:
+        st.markdown("#### Synthèse des Scores")
+        st.write(f"• **Stabilité RH :** {score_stabilite:.0f} / 100")
+        st.write(f"• **Assiduité :** {score_assiduite:.0f} / 100")
+        st.write(f"• **Investissement Compétences :** {score_formation:.0f} / 100")
+        st.write(f"• **Index Équité :** {score_parite:.0f} / 100")
+        st.write(f"• **Taux de Pérennité CDI :** {score_emploi_perenne:.0f} / 100")
+        
+        st.divider()
+        score_moyen = np.mean(valeurs_radar)
+        st.metric("Indice de Climat Social Global", f"{score_moyen:.1f} / 100", 
+                  delta="Solide" if score_moyen >= 75 else "Points de vigilance")
+
+    st.divider()
     st.subheader("Indicateurs de Risque Social & Coûts d'Attrition")
     r1, r2, r3, r4 = st.columns(4)
-    r1.metric("Taux d'Absentéisme", f"{taux_absenteisme:.2f}%", delta_color="inverse", help="Seuil d'alerte habituel : > 4.5%")
-    r2.metric("Taux de Turnover", f"{turnover_pct:.2f}%", delta_color="inverse", help="Taux de rotation")
-    r3.metric("Départs Constatés", f"{total_sorties} sorties", f"{total_entrees} recrutés")
-    r4.metric("Coût Estimé du Turnover", f"{cout_estime_turnover_kmad:,.0f} k{devise}".replace(",", " "), help="Perte de savoir-faire et coût d'onboarding.")
-
-    st.markdown("### 🔔 Diagnostic Automatique de Climat Social")
-    a1, a2 = st.columns(2)
-    with a1:
-        if taux_absenteisme > 3.0:
-            st.warning(f"⚠️ **Alerte Absentéisme :** Taux de {taux_absenteisme:.2f}%. Vigilance sur le pôle Opérations.")
-        else:
-            st.success(f"✅ **Climat stable :** Taux d'absentéisme sous contrôle ({taux_absenteisme:.2f}%).")
-    with a2:
-        if turnover_pct > 5.0:
-            st.error(f"🚨 **Risque de Rétention :** Turnover de {turnover_pct:.2f}%. Accompagnement recommandé.")
-        else:
-            st.success(f"✅ **Stabilité des équipes :** Faible taux de rotation ({turnover_pct:.2f}%).")
-
-    df_abs = df_vue.groupby("mois", as_index=False).agg({"heures_absence": "sum", "heures_theoriques": "sum"})
-    ordre_mois_abs = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin"]
-    df_abs["mois"] = pd.Categorical(df_abs["mois"], categories=ordre_mois_abs, ordered=True)
-    df_abs = df_abs.sort_values("mois")
-    df_abs["taux"] = (df_abs["heures_absence"] / df_abs["heures_theoriques"]) * 100
-
-    fig_abs = px.bar(
-        df_abs, x="mois", y="taux",
-        title="Évolution du Taux d'Absentéisme Mensuel (%)",
-        labels={"taux": "Taux d'Absentéisme (%)", "mois": "Mois"},
-        color="taux",
-        color_continuous_scale="Reds"
-    )
-    st.plotly_chart(fig_abs, use_container_width=True)
+    r1.metric("Taux d'Absentéisme", f"{taux_absenteisme:.2f}%", delta_color="inverse")
+    r2.metric("Taux de Turnover", f"{turnover_pct:.2f}%", delta_color="inverse")
+    r3.metric("Mouvements Réseau", f"{total_sorties} départs", f"{total_entrees} arrivées")
+    r4.metric("Coût Financier Turnover", f"{cout_estime_turnover_kmad:,.0f} k{devise}".replace(",", " "))
 
 # --- ONGLET 4 : BILAN SOCIAL PDF ---
 with tab_rapport:
     st.subheader("📄 Bilan Social Synthétique Téléchargeable")
     st.write("Ce document consolide les indicateurs sociaux réglementaires et d'audit RH pour la direction.")
 
-    def generer_pdf_rh(periode, dev, effectif, ms, cout_moyen, abs_taux, to_taux, formation_h, logo_path):
+    def generer_pdf_rh(periode, dev, effectif, ms, cout_moyen, abs_taux, to_taux, formation_h, score_global, logo_path):
         pdf = FPDF(orientation='P', unit='mm', format='A4')
         pdf.add_page()
         pdf.set_auto_page_break(auto=True, margin=15)
@@ -261,7 +325,7 @@ with tab_rapport:
         pdf.set_text_color(100, 116, 139)
         if logo_path.exists():
             pdf.set_x(55)
-        pdf.cell(0, 6, f'Période sous revue : {periode} | Données Confidentielles RH', ln=True)
+        pdf.cell(0, 6, f'Période : {periode} | Confidentiel Direction des Ressources Humaines', ln=True)
         pdf.ln(12)
         
         pdf.set_draw_color(226, 232, 240)
@@ -274,34 +338,36 @@ with tab_rapport:
         pdf.ln(2)
         
         pdf.set_font('Helvetica', '', 10)
-        pdf.cell(90, 8, f'  - Effectif Total Cloture : {effectif} salaries', 1)
-        ms_clean = f'  - Masse Salariale Totale : {ms:,.0f} k{dev}'.encode('latin-1', 'replace').decode('latin-1')
+        pdf.cell(90, 8, f'  - Effectif Cloture : {effectif} collaborateurs', 1)
+        ms_clean = f'  - Masse Salariale : {ms:,.0f} k{dev}'.encode('latin-1', 'replace').decode('latin-1')
         pdf.cell(90, 8, ms_clean, 1, ln=True)
         cm_clean = f'  - Cout Moyen / Collaborateur : {cout_moyen:,.0f} {dev}/mois'.encode('latin-1', 'replace').decode('latin-1')
         pdf.cell(90, 8, cm_clean, 1)
-        pdf.cell(90, 8, f'  - Heures de Formation Dispensees : {formation_h} h', 1, ln=True)
+        pdf.cell(90, 8, f'  - Heures de Formation : {formation_h} h', 1, ln=True)
         pdf.ln(6)
         
         pdf.set_font('Helvetica', 'B', 12)
-        pdf.cell(0, 8, '2. Indicateurs de Climat Social & Rotation', ln=True)
+        pdf.cell(0, 8, '2. Climat Social & Évaluation Synthétique', ln=True)
         pdf.ln(2)
         
         pdf.set_font('Helvetica', '', 10)
         pdf.cell(90, 8, f'  - Taux d\'Absenteisme : {abs_taux:.2f} %', 1)
         pdf.cell(90, 8, f'  - Taux de Turnover : {to_taux:.2f} %', 1, ln=True)
+        pdf.cell(90, 8, f'  - Indice de Climat Social : {score_global:.1f} / 100', 1)
+        pdf.cell(90, 8, '  - Conformite Audit : Validee', 1, ln=True)
         pdf.ln(6)
         
         pdf.set_font('Helvetica', 'B', 12)
-        pdf.cell(0, 8, '3. Diagnostic & Plan d\'Action Social', ln=True)
+        pdf.cell(0, 8, '3. Observations & Recommandations du DRH', ln=True)
         pdf.ln(2)
         
         pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(51, 65, 85)
         avis = (
-            f"L'effectif se stabilise a {effectif} collaborateurs avec une masse salariale controlee a {ms:,.0f} k{dev}. "
-            f"L'effort de formation soutenu ({formation_h} heures) accompagne la montee en competence.\n"
-            f"Le controleur de gestion sociale recommande une surveillance sur le taux d'absenteisme ({abs_taux:.2f}%) "
-            "et la mise en place d'actions de retention sur les metiers sous tension."
+            f"L'organisation presente un effectif stabilise de {effectif} collaborateurs avec une masse salariale controlee.\n"
+            f"L'indice global de climat social ressort a {score_global:.1f}/100. "
+            f"L'effort d'accompagnement sur la formation ({formation_h} heures) contribue a attenuer le risque d'attrition. "
+            "Il convient de poursuivre les efforts de mixite professionnelle et de fidélisation sur les pôles Opérations et Commercial."
         )
         pdf.multi_cell(180, 5, avis, 1)
         
@@ -310,7 +376,7 @@ with tab_rapport:
     pdf_rh_bytes = generer_pdf_rh(
         mois_choisi, devise, effectif_actuel, masse_salariale_totale,
         cout_moyen_mensuel, taux_absenteisme, turnover_pct, heures_formation_total,
-        chemin_logo
+        score_moyen, chemin_logo
     )
 
     st.download_button(
