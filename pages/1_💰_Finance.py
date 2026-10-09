@@ -147,3 +147,97 @@ st.download_button(
     file_name=f"analyse_controle_gestion_{trimestre_filtre}.csv",
     mime="text/csv"
 )
+import numpy as np
+
+st.divider()
+st.header("🔮 Module de Prévisions & Scénarios Budgétaires")
+
+onglet_pred, onglet_scenario = st.tabs(["📈 Projection Statistique (Tendance)", "🎛️ Simulation de Scénarios (What-If)"])
+
+# ==========================================
+# 1. PROJECTION STATISTIQUE (Régression linéaire)
+# ==========================================
+with onglet_pred:
+    st.subheader("Projection du Chiffre d'Affaires sur les 3 prochains mois")
+    
+    # Préparation des données historiques (Janvier à Décembre = mois 1 à 12)
+    x_historique = np.arange(1, len(df) + 1)
+    y_historique = df["ca_realise"].values
+    
+    # Ajustement de la droite de tendance : y = a*x + b
+    pente, ordonnee = np.polyfit(x_historique, y_historique, 1)
+    
+    # Projection sur les mois 13, 14, 15 (Jan, Fév, Mar N+1)
+    mois_futurs_idx = np.array([13, 14, 15])
+    mois_futurs_noms = ["Janvier N+1", "Février N+1", "Mars N+1"]
+    previsions_ca = pente * mois_futurs_idx + ordonnee
+    
+    # Affichage des cartes de prévisions
+    c_p1, c_p2, c_p3 = st.columns(3)
+    c_p1.metric(f"Prévision {mois_futurs_noms[0]}", f"{previsions_ca[0]:,.0f} {devise}".replace(",", " "))
+    c_p2.metric(f"Prévision {mois_futurs_noms[1]}", f"{previsions_ca[1]:,.0f} {devise}".replace(",", " "))
+    c_p3.metric(f"Prévision {mois_futurs_noms[2]}", f"{previsions_ca[2]:,.0f} {devise}".replace(",", " "))
+    
+    # Tracé graphique (Historique + Droite de tendance + Projection)
+    tous_mois = list(df["mois"]) + mois_futurs_noms
+    tous_idx = np.arange(1, len(tous_mois) + 1)
+    droite_tendance = pente * tous_idx + ordonnee
+    
+    fig_proj = go.Figure()
+    
+    # Données réelles
+    fig_proj.add_trace(go.Scatter(
+        x=df["mois"], y=y_historique,
+        mode="lines+markers", name="CA Réalisé",
+        line=dict(color="#1f77b4", width=3)
+    ))
+    
+    # Droite de tendance
+    fig_proj.add_trace(go.Scatter(
+        x=tous_mois, y=droite_tendance,
+        mode="lines", name="Tendance Linéaire",
+        line=dict(color="#7f7f7f", dash="dot")
+    ))
+    
+    # Points de prévisions
+    fig_proj.add_trace(go.Scatter(
+        x=mois_futurs_noms, y=previsions_ca,
+        mode="markers+text", name="Prévisions",
+        marker=dict(color="#d62728", size=10),
+        text=[f"{val:,.0f}" for val in previsions_ca],
+        textposition="top center"
+    ))
+    
+    fig_proj.update_layout(yaxis_title=f"Montant ({devise})", legend=dict(orientation="h", y=1.1))
+    st.plotly_chart(fig_proj, use_container_width=True)
+
+# ==========================================
+# 2. SIMULATION DE SCÉNARIOS (What-If)
+# ==========================================
+with onglet_scenario:
+    st.subheader("Simulateur d'Impact sur l'EBITDA")
+    st.write("Ajustez les hypothèses pour mesurer la sensibilité de la rentabilité :")
+    
+    sc1, sc2 = st.columns(2)
+    with sc1:
+        variation_ca = st.slider("Évolution anticipée du CA (%)", min_value=-30, max_value=30, value=5, step=1)
+    with sc2:
+        variation_cogs = st.slider("Inflation / Hausse du coût d'achat (%)", min_value=-20, max_value=20, value=3, step=1)
+    
+    # Calculs du scénario
+    ca_base = df["ca_realise"].sum()
+    cogs_base = df["cogs_realise"].sum()
+    charges_fixes = df["charges_personnel"].sum() + df["autres_charges_fixes"].sum()
+    
+    ca_simule = ca_base * (1 + variation_ca / 100)
+    cogs_simule = cogs_base * (1 + variation_cogs / 100)
+    marge_simulee = ca_simule - cogs_simule
+    ebitda_simule = marge_simulee - charges_fixes
+    ebitda_base = df["ebitda_realise"].sum()
+    ecart_ebitda = ebitda_simule - ebitda_base
+    
+    # Affichage des résultats simulés
+    r1, r2, r3 = st.columns(3)
+    r1.metric("CA Simulé", f"{ca_simule:,.0f} {devise}".replace(",", " "), delta=f"{variation_ca:+}%")
+    r2.metric("Marge Brute Simulée", f"{marge_simulee:,.0f} {devise}".replace(",", " "))
+    r3.metric("EBITDA Prévisionnel", f"{ebitda_simule:,.0f} {devise}".replace(",", " "), delta=f"{ecart_ebitda:+,.0f} {devise}")
