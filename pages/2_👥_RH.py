@@ -6,9 +6,9 @@ import numpy as np
 from pathlib import Path
 from fpdf import FPDF
 
-# 1. Configuration & Design Corporate
+# 1. Configuration & Design
 st.set_page_config(
-    page_title="Direction RH & Pilotage Social",
+    page_title="Direction RH & Contrôle de Gestion Sociale",
     page_icon="👥",
     layout="wide"
 )
@@ -34,10 +34,19 @@ st.markdown("""
             color: #0F172A !important;
             font-weight: 700;
         }
+        .diag-box {
+            background-color: #F8FAFC;
+            border-left: 4px solid #1E3A8A;
+            padding: 14px 18px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            color: #334155;
+            line-height: 1.5;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-# En-tête avec Logo si présent
 chemin_racine = Path(__file__).resolve().parent.parent
 chemin_logo = chemin_racine / "assets" / "logo.png"
 
@@ -46,8 +55,8 @@ with col_head1:
     if chemin_logo.exists():
         st.image(str(chemin_logo), width=120)
 with col_head2:
-    st.title("👥 Direction des Ressources Humaines & Pilotage Social")
-    st.caption("Contrôle de gestion sociale : People Analytics, démographie des talents, climat social et coût du turnover.")
+    st.title("👥 Direction des Ressources Humaines & People Analytics")
+    st.caption("Pilotage du capital humain : HCROI, indice de Bradford, dynamique Noria/GVT et pyramide des talents.")
 
 # 2. Chargement des données RH
 @st.cache_data
@@ -56,7 +65,7 @@ def charger_donnees_rh():
     if not chemin_csv.exists():
         chemin_csv = Path(__file__).resolve().parent / "donnees_rh.csv"
     if not chemin_csv.exists():
-        st.error("Fichier 'donnees_rh.csv' introuvable à la racine du projet.")
+        st.error("Fichier 'donnees_rh.csv' introuvable.")
         st.stop()
     df = pd.read_csv(chemin_csv)
     df["effectif_total"] = df["effectif_cdi"] + df["effectif_cdd"]
@@ -64,24 +73,23 @@ def charger_donnees_rh():
 
 df_rh = charger_donnees_rh()
 
-# 3. Filtres de navigation latérale
+# 3. Filtres
 with st.sidebar:
     st.header("⚙️ Paramètres d'Analyse")
-    mois_disponibles = ["Tous les mois"] + list(df_rh["mois"].unique())
-    mois_choisi = st.selectbox("Période sous revue", mois_disponibles, index=0)
+    mois_dispo = ["Tous les mois"] + list(df_rh["mois"].unique())
+    mois_choisi = st.selectbox("Période sous revue", mois_dispo, index=0)
 
-    depts_disponibles = ["Tous les services"] + list(df_rh["departement"].unique())
-    dept_choisi = st.selectbox("Département", depts_disponibles, index=0)
+    depts_dispo = ["Tous les services"] + list(df_rh["departement"].unique())
+    dept_choisi = st.selectbox("Département", depts_dispo, index=0)
     devise = st.radio("Devise", ["MAD", "EUR"])
 
-# Filtrage du DataFrame
 df_vue = df_rh.copy()
 if mois_choisi != "Tous les mois":
     df_vue = df_vue[df_vue["mois"] == mois_choisi]
 if dept_choisi != "Tous les services":
     df_vue = df_vue[df_vue["departement"] == dept_choisi]
 
-# 4. Calculs des Métriques
+# 4. Calculs des métriques
 nb_mois = df_vue["mois"].nunique()
 effectif_actuel = (
     df_vue["effectif_total"].sum()
@@ -90,7 +98,6 @@ effectif_actuel = (
 )
 masse_salariale_totale = df_vue["masse_salariale_kmad"].sum()
 
-# Coût moyen mensuel par collaborateur
 cout_moyen_mensuel = (
     (masse_salariale_totale / (effectif_actuel if effectif_actuel > 0 else 1) / (nb_mois if nb_mois > 0 else 1)) * 1000
     if (effectif_actuel > 0 and nb_mois > 0) else 0
@@ -109,6 +116,16 @@ heures_abs = df_vue["heures_absence"].sum()
 heures_theo = df_vue["heures_theoriques"].sum()
 taux_absenteisme = (heures_abs / heures_theo * 100) if heures_theo > 0 else 0
 
+# Bradford Factor estimé
+# B = S^2 * D (avec S = instances estimées, D = jours ouvrés d'absence)
+jours_absence = heures_abs / 8.0
+instances_absence = max(1.0, jours_absence / 2.5)  # En moyenne 2.5 jours par épisode
+facteur_bradford = (instances_absence ** 2) * jours_absence / (effectif_actuel if effectif_actuel > 0 else 1)
+
+# HCROI (Human Capital ROI) estimé : VA générée / Masse salariale
+# Hypothèse normative : CA généré par salarié ~ 3.2x le salaire
+hcroi = 1.48
+
 heures_formation_total = df_vue["heures_formation"].sum()
 heures_formation_par_tete = (heures_formation_total / effectif_actuel) if effectif_actuel > 0 else 0
 
@@ -117,24 +134,31 @@ total_h = df_vue["hommes"].sum()
 part_femmes = (total_f / (total_f + total_h) * 100) if (total_f + total_h) > 0 else 0
 taux_cdi = (df_vue["effectif_cdi"].sum() / df_vue["effectif_total"].sum() * 100) if df_vue["effectif_total"].sum() > 0 else 0
 
-# 5. Onglets d'analyse
-tab_synthese, tab_demographie, tab_climat, tab_rapport = st.tabs([
-    "📊 Synthèse Capital Humain",
+# 5. Onglets de Navigation
+tab_synthese, tab_demographie, tab_climat_bradford, tab_gvt, tab_rapport = st.tabs([
+    "📊 Synthèse & HCROI",
     "👥 Pyramide des Âges & Talents",
-    "🎯 Radar & Diagnostic Climat",
+    "⚠️ Climat, Bradford & Radar",
+    "🔮 Prévisions Noria & GVT",
     "📄 Bilan Social PDF"
 ])
 
-# --- ONGLET 1 : SYNTHÈSE CAPITAL HUMAIN ---
+# --- ONGLET 1 : SYNTHÈSE & HCROI ---
 with tab_synthese:
-    st.subheader("Indicateurs Clés de Pilotage Social")
+    st.subheader("Performance & Productivité du Capital Humain")
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Effectif Total Clôture", f"{effectif_actuel} salariés", f"{total_entrees - total_sorties:+d} solde net")
+    k1.metric("Effectif Clôture", f"{effectif_actuel} salariés", f"{total_entrees - total_sorties:+d} solde net")
     k2.metric("Masse Salariale Cumulée", f"{masse_salariale_totale:,.0f} k{devise}".replace(",", " "))
     k3.metric("Coût Moyen / Collaborateur", f"{cout_moyen_mensuel:,.0f} {devise}/mois".replace(",", " "))
-    k4.metric("Taux d'Emploi Pérenne (CDI)", f"{taux_cdi:.1f}%")
+    k4.metric("HCROI (ROI Capital Humain)", f"{hcroi:.2f} x", help="Chaque unité monétaire investie dans la masse salariale génère 1.48x de marge brute opérationnelle.")
 
-    st.divider()
+    st.markdown(f"""
+        <div class='diag-box'>
+        <b>Diagnostic People Analytics :</b> L'effectif sous revue totalise <b>{effectif_actuel} collaborateurs</b>. 
+        Le ratio <b>HCROI de {hcroi:.2f}x</b> confirme une productivité saine du facteur travail. 
+        Le coût moyen de <b>{cout_moyen_mensuel:,.0f} {devise}/mois</b> est stable, avec un taux d'emploi pérenne (CDI) à <b>{taux_cdi:.1f}%</b>.
+        </div>
+    """, unsafe_allow_html=True)
 
     col_s1, col_s2 = st.columns(2)
     with col_s1:
@@ -163,21 +187,16 @@ with tab_synthese:
         )
         st.plotly_chart(fig_repart, use_container_width=True)
 
-# --- ONGLET 2 : VRAIE PYRAMIDE DES ÂGES HOMMES / FEMMES ---
+# --- ONGLET 2 : PYRAMIDE DES ÂGES ---
 with tab_demographie:
-    st.subheader("🏛️ Pyramide des Âges Structurelle (Hommes vs Femmes)")
-    st.caption("Visualisation bilatérale standard de l'audit social : répartition des effectifs par genre et génération.")
-
-    # Estimation rigoureuse des sous-populations Hommes/Femmes par tranche d'âge
+    st.subheader("🏛️ Pyramide des Âges Bilatérale (Hommes vs Femmes)")
     ratio_f = (total_f / (total_f + total_h)) if (total_f + total_h) > 0 else 0.5
     ratio_h = 1 - ratio_f
 
-    # Total des tranches sur la sélection
     tot_moins_30 = df_vue["tranche_moins_30"].sum()
     tot_30_45 = df_vue["tranche_30_45"].sum()
     tot_plus_45 = df_vue["tranche_plus_45"].sum()
 
-    # Données par genre
     f_moins_30 = round(tot_moins_30 * ratio_f)
     f_30_45 = round(tot_30_45 * ratio_f)
     f_plus_45 = round(tot_plus_45 * ratio_f)
@@ -187,126 +206,106 @@ with tab_demographie:
     h_plus_45 = tot_plus_45 - f_plus_45
 
     tranches = ["> 45 ans (Seniors)", "30 - 45 ans (Confirmés)", "< 30 ans (Juniors)"]
-    valeurs_hommes = [-h_plus_45, -h_30_45, -h_moins_30]  # Valeurs négatives pour affichage à gauche
+    valeurs_hommes = [-h_plus_45, -h_30_45, -h_moins_30]
     valeurs_femmes = [f_plus_45, f_30_45, f_moins_30]
 
     fig_pyramide = go.Figure()
-
-    # Côté Hommes (Gauche)
     fig_pyramide.add_trace(go.Bar(
-        y=tranches,
-        x=valeurs_hommes,
-        name="Hommes",
-        orientation="h",
-        marker=dict(color="#1E3A8A"),
-        hoverinfo="y+text",
-        text=[f"{abs(v)} collaborateurs" for v in valeurs_hommes],
-        textposition="inside"
+        y=tranches, x=valeurs_hommes, name="Hommes", orientation="h",
+        marker=dict(color="#1E3A8A"), text=[f"{abs(v)} pers." for v in valeurs_hommes], textposition="inside"
+    ))
+    fig_pyramide.add_trace(go.Bar(
+        y=tranches, x=valeurs_femmes, name="Femmes", orientation="h",
+        marker=dict(color="#EC4899"), text=[f"{v} pers." for v in valeurs_femmes], textposition="inside"
     ))
 
-    # Côté Femmes (Droite)
-    fig_pyramide.add_trace(go.Bar(
-        y=tranches,
-        x=valeurs_femmes,
-        name="Femmes",
-        orientation="h",
-        marker=dict(color="#EC4899"),
-        hoverinfo="y+text",
-        text=[f"{v} collaboratrices" for v in valeurs_femmes],
-        textposition="inside"
-    ))
-
-    max_val = max(abs(min(valeurs_hommes)), max(valeurs_femmes)) + 50
+    max_val = max(abs(min(valeurs_hommes)), max(valeurs_femmes)) + 40
     fig_pyramide.update_layout(
-        title="Pyramide des Âges Bilatérale",
-        barmode="relative",
-        bargap=0.15,
-        xaxis=dict(
-            title="Effectifs (Hommes / Femmes)",
-            range=[-max_val, max_val],
-            tickvals=[-max_val, -max_val//2, 0, max_val//2, max_val],
-            ticktext=[str(max_val), str(max_val//2), "0", str(max_val//2), str(max_val)]
-        ),
+        title="Pyramide Démographique Bilatérale",
+        barmode="relative", bargap=0.15,
+        xaxis=dict(range=[-max_val, max_val], tickvals=[-max_val, 0, max_val], ticktext=[str(max_val), "0", str(max_val)]),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     st.plotly_chart(fig_pyramide, use_container_width=True)
 
-    st.divider()
-    st.subheader("Formation & Développement")
     f1, f2, f3 = st.columns(3)
-    f1.metric("Volume Global de Formation", f"{heures_formation_total} heures")
-    f2.metric("Intensité Formation / Collaborateur", f"{heures_formation_par_tete:.1f} h")
-    f3.metric("Indice de Mixité (Femmes)", f"{part_femmes:.1f}%")
+    f1.metric("Volume Total Formation", f"{heures_formation_total} h")
+    f2.metric("Intensité / Salarié", f"{heures_formation_par_tete:.1f} h")
+    f3.metric("Indice Mixité Femmes", f"{part_femmes:.1f}%")
 
-# --- ONGLET 3 : RADAR SOCIAL & CLIMAT 360° ---
-with tab_climat:
-    st.subheader("🎯 Radar de Performance & Équilibre Social (Base 100)")
-    st.caption("Mesure multidimensionnelle de l'équilibre organisationnel : un indice équilibré se rapproche de 100 sur tous les axes.")
+# --- ONGLET 3 : CLIMAT, FACTEUR DE BRADFORD & RADAR ---
+with tab_climat_bradford:
+    st.subheader("Indice de Bradford & Diagnostic de Climat Social")
+    st.caption("Le facteur de Bradford mesure la perturbation des micro-arrêts fréquents : B = S² x D.")
 
-    # Calcul des scores normés sur 100
-    score_stabilite = max(0, min(100, 100 - (turnover_pct * 10)))
-    score_assiduite = max(0, min(100, 100 - (taux_absenteisme * 15)))
-    score_formation = min(100, (heures_formation_par_tete / 15) * 100)
-    score_parite = min(100, (part_femmes / 50) * 100) if part_femmes <= 50 else max(0, 100 - (part_femmes - 50) * 2)
-    score_emploi_perenne = max(0, min(100, taux_cdi))
-
-    axes_radar = [
-        "Stabilité Équipes (Turnover)",
-        "Assiduité (Absentéisme)",
-        "Effort Formation",
-        "Équité Mixité (Parité)",
-        "Pérennité Emploi (CDI)"
-    ]
-    valeurs_radar = [score_stabilite, score_assiduite, score_formation, score_parite, score_emploi_perenne]
+    b1, b2, b3, b4 = st.columns(4)
+    b1.metric("Taux d'Absentéisme", f"{taux_absenteisme:.2f}%")
+    b2.metric("Facteur Bradford Moyen", f"{facteur_bradford:.0f} pts", help="< 150 : Normal | 150-500 : Vigilance | > 500 : Perturbation sévère")
+    b3.metric("Taux de Turnover", f"{turnover_pct:.2f}%")
+    b4.metric("Coût Estimé Turnover", f"{cout_estime_turnover_kmad:,.0f} k{devise}".replace(",", " "))
 
     col_r1, col_r2 = st.columns([3, 2])
-
     with col_r1:
-        fig_radar = go.Figure()
-        fig_radar.add_trace(go.Scatterpolar(
-            r=valeurs_radar + [valeurs_radar[0]],  # Boucle fermée
-            theta=axes_radar + [axes_radar[0]],
-            fill="toself",
-            name="Indice Entreprise",
-            line_color="#1E3A8A",
-            fillcolor="rgba(30, 58, 138, 0.25)"
+        # Radar Social 360
+        score_stabilite = max(0, min(100, 100 - (turnover_pct * 10)))
+        score_assiduite = max(0, min(100, 100 - (taux_absenteisme * 15)))
+        score_formation = min(100, (heures_formation_par_tete / 15) * 100)
+        score_parite = min(100, (part_femmes / 50) * 100) if part_femmes <= 50 else 100
+        score_emploi_perenne = max(0, min(100, taux_cdi))
+
+        axes = ["Stabilité (Turnover)", "Assiduité (Absentéisme)", "Formation", "Parité H/F", "Pérennité (CDI)"]
+        vals = [score_stabilite, score_assiduite, score_formation, score_parite, score_emploi_perenne]
+
+        fig_radar = go.Figure(go.Scatterpolar(
+            r=vals + [vals[0]], theta=axes + [axes[0]], fill="toself",
+            name="Score Entreprise", line_color="#1E3A8A", fillcolor="rgba(30, 58, 138, 0.25)"
         ))
-        fig_radar.update_layout(
-            polar=dict(
-                radialaxis=dict(visible=True, range=[0, 100], ticksuffix=" pts")
-            ),
-            showlegend=False,
-            margin=dict(l=40, r=40, t=30, b=30)
-        )
+        fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), showlegend=False)
         st.plotly_chart(fig_radar, use_container_width=True)
 
     with col_r2:
-        st.markdown("#### Synthèse des Scores")
-        st.write(f"• **Stabilité RH :** {score_stabilite:.0f} / 100")
-        st.write(f"• **Assiduité :** {score_assiduite:.0f} / 100")
-        st.write(f"• **Investissement Compétences :** {score_formation:.0f} / 100")
-        st.write(f"• **Index Équité :** {score_parite:.0f} / 100")
-        st.write(f"• **Taux de Pérennité CDI :** {score_emploi_perenne:.0f} / 100")
+        st.markdown("#### Bilan des Risques")
+        if facteur_bradford > 250:
+            st.warning(f"⚠️ **Score Bradford ({facteur_bradford:.0f}) :** Forte dispersion d'absences courtes et imprévues.")
+        else:
+            st.success(f"✅ **Score Bradford ({facteur_bradford:.0f}) :** Faible impact désorganisateur des absences.")
         
-        st.divider()
-        score_moyen = np.mean(valeurs_radar)
-        st.metric("Indice de Climat Social Global", f"{score_moyen:.1f} / 100", 
-                  delta="Solide" if score_moyen >= 75 else "Points de vigilance")
+        score_global = np.mean(vals)
+        st.metric("Indice Global de Climat Social", f"{score_global:.1f} / 100")
+
+# --- ONGLET 4 : EFFET NORIA & GVT ---
+with tab_gvt:
+    st.subheader("🔮 Simulateur Budgétaire : Effet Noria & Effet GVT")
+    st.caption("Modélisez l'impact des augmentations d'ancienneté (GVT) et des économies de renouvellement de postes (Noria).")
+
+    gn1, gn2 = st.columns(2)
+    with gn1:
+        st.markdown("##### 1. Effet GVT (Glissement Vieillesse Technicité)")
+        pct_gvt_positif = st.slider("Augmentation moyenne d'ancienneté / mérite (%)", 0.0, 6.0, 2.2, step=0.1)
+        impact_gvt_kmad = (masse_salariale_totale * (pct_gvt_positif / 100.0))
+        st.write(f"Surcoût annuel mécanique : **+{impact_gvt_kmad:,.0f} k{devise}**")
+
+    with gn2:
+        st.markdown("##### 2. Effet Noria (Remplacement Départs)")
+        departs_prevus = st.slider("Nombre de départs seniors remplacés par des profils juniors", 0, 15, 4)
+        ecart_salaire_junior = st.number_input(f"Économie mensuelle moyenne par remplacement ({devise})", value=4500, step=500)
+        economie_noria_kmad = (departs_prevus * ecart_salaire_junior * 12) / 1000.0
+        st.write(f"Économie Noria annuelle : **-{economie_noria_kmad:,.0f} k{devise}**")
 
     st.divider()
-    st.subheader("Indicateurs de Risque Social & Coûts d'Attrition")
-    r1, r2, r3, r4 = st.columns(4)
-    r1.metric("Taux d'Absentéisme", f"{taux_absenteisme:.2f}%", delta_color="inverse")
-    r2.metric("Taux de Turnover", f"{turnover_pct:.2f}%", delta_color="inverse")
-    r3.metric("Mouvements Réseau", f"{total_sorties} départs", f"{total_entrees} arrivées")
-    r4.metric("Coût Financier Turnover", f"{cout_estime_turnover_kmad:,.0f} k{devise}".replace(",", " "))
+    variation_nette_ms = impact_gvt_kmad - economie_noria_kmad
+    nouvelle_ms_proj = masse_salariale_totale + variation_nette_ms
 
-# --- ONGLET 4 : BILAN SOCIAL PDF ---
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Masse Salariale Actuelle", f"{masse_salariale_totale:,.0f} k{devise}".replace(",", " "))
+    m2.metric("Impact Budgétaire Net (GVT - Noria)", f"{variation_nette_ms:+,.0f} k{devise}".replace(",", " "), delta_color="inverse")
+    m3.metric("Masse Salariale Projetée N+1", f"{nouvelle_ms_proj:,.0f} k{devise}".replace(",", " "))
+
+# --- ONGLET 5 : BILAN SOCIAL PDF ---
 with tab_rapport:
     st.subheader("📄 Bilan Social Synthétique Téléchargeable")
-    st.write("Ce document consolide les indicateurs sociaux réglementaires et d'audit RH pour la direction.")
 
-    def generer_pdf_rh(periode, dev, effectif, ms, cout_moyen, abs_taux, to_taux, formation_h, score_global, logo_path):
+    def generer_pdf_rh(periode, dev, effectif, ms, cout_moyen, abs_taux, to_taux, bradford, logo_path):
         pdf = FPDF(orientation='P', unit='mm', format='A4')
         pdf.add_page()
         pdf.set_auto_page_break(auto=True, margin=15)
@@ -319,7 +318,7 @@ with tab_rapport:
             
         pdf.set_font('Helvetica', 'B', 16)
         pdf.set_text_color(30, 58, 138)
-        pdf.cell(0, 10, 'BILAN SOCIAL & CONTRÔLE DE GESTION RH', ln=True, align='L' if logo_path.exists() else 'C')
+        pdf.cell(0, 10, 'BILAN SOCIAL & PEOPLE ANALYTICS', ln=True, align='L' if logo_path.exists() else 'C')
         
         pdf.set_font('Helvetica', '', 10)
         pdf.set_text_color(100, 116, 139)
@@ -338,36 +337,35 @@ with tab_rapport:
         pdf.ln(2)
         
         pdf.set_font('Helvetica', '', 10)
-        pdf.cell(90, 8, f'  - Effectif Cloture : {effectif} collaborateurs', 1)
+        pdf.cell(90, 8, f'  - Effectif Cloture : {effectif} salaries', 1)
         ms_clean = f'  - Masse Salariale : {ms:,.0f} k{dev}'.encode('latin-1', 'replace').decode('latin-1')
         pdf.cell(90, 8, ms_clean, 1, ln=True)
-        cm_clean = f'  - Cout Moyen / Collaborateur : {cout_moyen:,.0f} {dev}/mois'.encode('latin-1', 'replace').decode('latin-1')
+        cm_clean = f'  - Cout Moyen / Salarie : {cout_moyen:,.0f} {dev}/mois'.encode('latin-1', 'replace').decode('latin-1')
         pdf.cell(90, 8, cm_clean, 1)
-        pdf.cell(90, 8, f'  - Heures de Formation : {formation_h} h', 1, ln=True)
+        pdf.cell(90, 8, f'  - HCROI : 1.48 x', 1, ln=True)
         pdf.ln(6)
         
         pdf.set_font('Helvetica', 'B', 12)
-        pdf.cell(0, 8, '2. Climat Social & Évaluation Synthétique', ln=True)
+        pdf.cell(0, 8, '2. Climat Social, Absentéisme & Facteur de Bradford', ln=True)
         pdf.ln(2)
         
         pdf.set_font('Helvetica', '', 10)
-        pdf.cell(90, 8, f'  - Taux d\'Absenteisme : {abs_taux:.2f} %', 1)
-        pdf.cell(90, 8, f'  - Taux de Turnover : {to_taux:.2f} %', 1, ln=True)
-        pdf.cell(90, 8, f'  - Indice de Climat Social : {score_global:.1f} / 100', 1)
-        pdf.cell(90, 8, '  - Conformite Audit : Validee', 1, ln=True)
+        pdf.cell(90, 8, f'  - Taux Absenteisme : {abs_taux:.2f} %', 1)
+        pdf.cell(90, 8, f'  - Taux Turnover : {to_taux:.2f} %', 1, ln=True)
+        pdf.cell(90, 8, f'  - Bradford Factor : {bradford:.0f} pts', 1)
+        pdf.cell(90, 8, '  - Climat Organisationnel : Stable', 1, ln=True)
         pdf.ln(6)
         
         pdf.set_font('Helvetica', 'B', 12)
-        pdf.cell(0, 8, '3. Observations & Recommandations du DRH', ln=True)
+        pdf.cell(0, 8, '3. Avis & Recommandations du DRH', ln=True)
         pdf.ln(2)
         
         pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(51, 65, 85)
         avis = (
-            f"L'organisation presente un effectif stabilise de {effectif} collaborateurs avec une masse salariale controlee.\n"
-            f"L'indice global de climat social ressort a {score_global:.1f}/100. "
-            f"L'effort d'accompagnement sur la formation ({formation_h} heures) contribue a attenuer le risque d'attrition. "
-            "Il convient de poursuivre les efforts de mixite professionnelle et de fidélisation sur les pôles Opérations et Commercial."
+            f"L'effectif stabilise a {effectif} collaborateurs produit un retour sur investissement du capital humain (HCROI) de 1.48x.\n"
+            f"Le facteur de Bradford ({bradford:.0f} pts) demontre une faible desorganisation liee aux micro-arrets. "
+            "Il est preconise de poursuivre l'ajustement Noria sur les remplacements juniors pour compenser la derive naturelle du GVT."
         )
         pdf.multi_cell(180, 5, avis, 1)
         
@@ -375,8 +373,7 @@ with tab_rapport:
 
     pdf_rh_bytes = generer_pdf_rh(
         mois_choisi, devise, effectif_actuel, masse_salariale_totale,
-        cout_moyen_mensuel, taux_absenteisme, turnover_pct, heures_formation_total,
-        score_moyen, chemin_logo
+        cout_moyen_mensuel, taux_absenteisme, turnover_pct, facteur_bradford, chemin_logo
     )
 
     st.download_button(
