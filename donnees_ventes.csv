@@ -1,0 +1,31 @@
+mois,region,canal,produit,quantite_vendue,prix_unitaire_mad,cout_unitaire_mad,ca_realise_kmad,marge_brute_kmad,prospects,devis_emis,opportunites_gagnees
+Janvier,Nord,B2B Direct,Ligne Alpha,140,4500,2800,630,238,120,45,18
+Janvier,Nord,Grands Comptes,Ligne Beta,60,8200,4900,492,198,40,22,12
+Janvier,Centre,B2B Direct,Ligne Alpha,210,4500,2800,945,357,180,70,30
+Janvier,Centre,Export,Ligne Gamma,85,6100,3700,518.5,204,65,30,15
+Janvier,Sud,B2B Direct,Ligne Alpha,95,4500,2800,427.5,161.5,90,35,12
+Fevrier,Nord,B2B Direct,Ligne Alpha,150,4500,2800,675,255,130,50,20
+Fevrier,Nord,Grands Comptes,Ligne Beta,65,8200,4900,533,214.5,45,25,14
+Fevrier,Centre,B2B Direct,Ligne Alpha,220,4500,2800,990,374,190,75,32
+Fevrier,Centre,Export,Ligne Gamma,90,6100,3700,549,216,70,32,16
+Fevrier,Sud,B2B Direct,Ligne Alpha,100,4500,2800,450,170,95,38,14
+Mars,Nord,B2B Direct,Ligne Alpha,160,4500,2800,720,272,140,55,22
+Mars,Nord,Grands Comptes,Ligne Beta,70,8200,4900,574,231,50,28,15
+Mars,Centre,B2B Direct,Ligne Alpha,240,4500,2800,1080,408,210,85,36
+Mars,Centre,Export,Ligne Gamma,95,6100,3700,579.5,228,75,35,18
+Mars,Sud,B2B Direct,Ligne Alpha,110,4500,2800,495,187,105,42,16
+Avril,Nord,B2B Direct,Ligne Alpha,155,4500,2800,697.5,263.5,135,52,21
+Avril,Nord,Grands Comptes,Ligne Beta,68,8200,4900,557.6,224.4,48,26,14
+Avril,Centre,B2B Direct,Ligne Alpha,235,4500,2800,1057.5,399.5,205,80,34
+Avril,Centre,Export,Ligne Gamma,92,6100,3700,561.2,220.8,72,34,17
+Avril,Sud,B2B Direct,Ligne Alpha,105,4500,2800,472.5,178.5,100,40,15
+Mai,Nord,B2B Direct,Ligne Alpha,165,4500,2800,742.5,280.5,145,58,24
+Mai,Nord,Grands Comptes,Ligne Beta,75,8200,4900,615,247.5,52,30,16
+Mai,Centre,B2B Direct,Ligne Alpha,250,4500,2800,1125,425,220,90,38
+Mai,Centre,Export,Ligne Gamma,100,6100,3700,610,240,80,38,20
+Mai,Sud,B2B Direct,Ligne Alpha,115,4500,2800,517.5,195.5,110,45,18
+Juin,Nord,B2B Direct,Ligne Alpha,175,4500,2800,787.5,297.5,150,60,25
+Juin,Nord,Grands Comptes,Ligne Beta,80,8200,4900,656,264,55,32,18
+Juin,Centre,B2B Direct,Ligne Alpha,265,4500,2800,1192.5,450.5,230,95,42
+Juin,Centre,Export,Ligne Gamma,110,6100,3700,671,264,85,42,22
+Juin,Sud,B2B Direct,Ligne Alpha,125,4500,2800,562.5,212.5,120,48,20
