@@ -1,4 +1,31 @@
-import streamlit as st
+from pathlib import Path
+
+# 1. Rétablir .streamlit/config.toml en mode clair standard
+rep_streamlit = Path(".streamlit")
+rep_streamlit.mkdir(exist_ok=True)
+
+contenu_config_clair = """[theme]
+base = "light"
+primaryColor = "#1E3A8A"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F8FAFC"
+textColor = "#0F172A"
+font = "sans serif"
+
+[client]
+showErrorDetails = false
+
+[ui]
+hideTopBar = false
+"""
+
+with open(rep_streamlit / "config.toml", "w", encoding="utf-8") as f:
+    f.write(contenu_config_clair)
+
+print("✅ .streamlit/config.toml réinitialisé en mode clair.")
+
+# 2. Rétablir style.py avec un design clair, sobre et corporate
+contenu_style_clair = """import streamlit as st
 import plotly.io as pio
 
 def appliquer_theme_cockpit_dark():
@@ -109,3 +136,10 @@ def appliquer_theme_cockpit_dark():
             footer {visibility: hidden;}
         </style>
     ''', unsafe_allow_html=True)
+"""
+
+with open("style.py", "w", encoding="utf-8") as f:
+    f.write(contenu_style_clair)
+
+print("✅ style.py réinitialisé en mode clair.")
+print("🚀 Prêt !")
