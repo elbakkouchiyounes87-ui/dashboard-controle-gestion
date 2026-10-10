@@ -1,4 +1,30 @@
-import streamlit as st
+from pathlib import Path
+
+# 1. Mise à jour de .streamlit/config.toml (Thème Executive Chic)
+rep_streamlit = Path(".streamlit")
+rep_streamlit.mkdir(exist_ok=True)
+
+contenu_config = """[theme]
+primaryColor = "#D4AF37"
+backgroundColor = "#090D16"
+secondaryBackgroundColor = "#111726"
+textColor = "#F1F5F9"
+font = "sans serif"
+
+[client]
+showErrorDetails = false
+
+[ui]
+hideTopBar = false
+"""
+
+with open(rep_streamlit / "config.toml", "w", encoding="utf-8") as f:
+    f.write(contenu_config)
+
+print("✅ .streamlit/config.toml mis à jour.")
+
+# 2. Refonte complète de style.py (Design Haute Définition & Élégance Discrète)
+contenu_style = """import streamlit as st
 import plotly.io as pio
 
 def appliquer_theme_cockpit_dark():
@@ -128,3 +154,10 @@ def appliquer_theme_cockpit_dark():
             footer {visibility: hidden;}
         </style>
     ''', unsafe_allow_html=True)
+"""
+
+with open("style.py", "w", encoding="utf-8") as f:
+    f.write(contenu_style)
+
+print("✅ style.py transformé en Thème Executive Chic.")
+print("🚀 Prêt à exécuter !")
