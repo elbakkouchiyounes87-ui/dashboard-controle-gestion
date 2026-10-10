@@ -1,3 +1,4 @@
+from style import appliquer_theme_cockpit_dark
 import io
 from pathlib import Path
 from fpdf import FPDF
@@ -13,6 +14,8 @@ st.set_page_config(
     page_icon="💰",
     layout="wide",
 )
+appliquer_theme_cockpit_dark()
+
 
 st.markdown(
     """

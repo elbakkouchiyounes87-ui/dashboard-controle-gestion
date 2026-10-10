@@ -1,3 +1,4 @@
+from style import appliquer_theme_cockpit_dark
 import streamlit as st
 
 st.set_page_config(
@@ -5,6 +6,8 @@ st.set_page_config(
     page_icon="🏢",
     layout="wide"
 )
+appliquer_theme_cockpit_dark()
+
 st.markdown("""
     <style>
         /* Masquer le menu Streamlit et le filigrane */
