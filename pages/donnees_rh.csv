@@ -1,31 +1,31 @@
-mois,departement,effectif_cdi,effectif_cdd,recrutements,departs,heures_absence,heures_theoriques,masse_salariale_kmad,femmes,hommes,heures_formation,tranche_moins_30,tranche_30_45,tranche_plus_45
-Janvier,Finance,12,1,0,0,32,1950,215,6,7,25,3,7,3
-Janvier,Commercial,42,4,2,1,160,6900,430,20,26,80,18,22,6
-Janvier,R&D,35,3,1,0,80,5700,490,12,26,120,8,22,8
-Janvier,Operations,50,8,3,2,240,8700,410,18,40,40,15,25,18
-Janvier,RH,9,1,0,0,24,1500,120,7,3,30,2,6,2
-Fevrier,Finance,12,1,0,0,28,1950,215,6,7,20,3,7,3
-Fevrier,Commercial,43,4,1,1,155,7050,440,21,26,90,18,23,6
-Fevrier,R&D,36,3,1,0,70,5850,500,13,26,110,9,22,8
-Fevrier,Operations,51,7,2,1,210,8700,415,18,40,45,15,25,18
-Fevrier,RH,9,1,0,0,20,1500,120,7,3,25,2,6,2
-Mars,Finance,12,1,0,0,35,1950,218,6,7,40,3,7,3
-Mars,Commercial,43,5,2,1,170,7200,455,21,27,85,18,23,7
-Mars,R&D,37,3,1,1,65,6000,510,13,27,130,9,23,8
-Mars,Operations,52,8,2,2,260,9000,425,19,41,50,16,26,18
-Mars,RH,9,1,0,0,18,1500,120,7,3,35,2,6,2
-Avril,Finance,12,1,0,0,30,1950,218,6,7,30,3,7,3
-Avril,Commercial,44,5,1,2,180,7350,460,21,28,75,19,23,7
-Avril,R&D,37,3,0,0,85,6000,510,13,27,105,9,23,8
-Avril,Operations,52,9,3,1,290,9150,430,19,42,60,16,26,19
-Avril,RH,9,1,0,0,22,1500,120,7,3,20,2,6,2
-Mai,Finance,13,1,1,0,25,2100,230,7,7,35,4,7,3
-Mai,Commercial,43,6,1,2,190,7350,455,20,29,110,18,24,7
-Mai,R&D,37,4,1,0,90,6150,520,13,28,140,9,24,8
-Mai,Operations,54,8,2,1,250,9300,440,20,42,70,17,26,19
-Mai,RH,9,1,0,0,20,1500,120,7,3,40,2,6,2
-Juin,Finance,13,1,0,0,30,2100,232,7,7,30,4,7,3
-Juin,Commercial,42,7,2,3,210,7350,450,20,29,95,17,25,7
-Juin,R&D,38,4,1,0,75,6300,535,14,28,150,10,24,8
-Juin,Operations,55,9,3,2,270,9600,455,21,43,65,18,27,19
-Juin,RH,10,1,1,0,20,1650,130,8,3,25,2,7,2
+mois,departement,effectif_cdi,effectif_cdd,masse_salariale_kmad,recrutements,departs,heures_absence,heures_theoriques,tranche_moins_30,tranche_30_45,tranche_plus_45,hommes,femmes,heures_formation
+Janvier,Pôle Urgences & SAMU,62,12,740.0,3,1,720,11840,24,36,14,30,44,180
+Janvier,Pôle Réanimation & Anesthésie,48,8,610.0,2,1,510,8960,16,28,12,22,34,160
+Janvier,Pôle Chirurgie,75,10,890.0,2,2,680,13600,20,42,23,38,47,150
+Janvier,Pôle Médecine Interne,55,9,620.0,1,1,590,10240,18,31,15,20,44,120
+Janvier,Pôle Mère-Enfant (Pédiatrie),50,7,560.0,2,0,480,9120,19,26,12,12,45,140
+Fevrier,Pôle Urgences & SAMU,63,13,760.0,2,1,750,12160,25,36,15,31,45,190
+Fevrier,Pôle Réanimation & Anesthésie,49,8,620.0,1,0,530,9120,17,28,12,22,35,170
+Fevrier,Pôle Chirurgie,75,11,905.0,2,1,700,13760,20,43,23,38,48,160
+Fevrier,Pôle Médecine Interne,55,9,625.0,1,1,610,10240,18,31,15,20,44,130
+Fevrier,Pôle Mère-Enfant (Pédiatrie),51,8,575.0,2,1,490,9440,20,26,13,12,47,150
+Mars,Pôle Urgences & SAMU,64,13,770.0,2,1,730,12320,25,37,15,31,46,200
+Mars,Pôle Réanimation & Anesthésie,50,8,630.0,1,0,500,9280,17,29,12,23,35,180
+Mars,Pôle Chirurgie,76,11,915.0,2,1,690,13920,21,43,23,39,48,170
+Mars,Pôle Médecine Interne,56,8,628.0,1,0,580,10240,18,32,14,21,43,140
+Mars,Pôle Mère-Enfant (Pédiatrie),52,8,585.0,1,0,470,9600,20,27,13,12,48,160
+Avril,Pôle Urgences & SAMU,64,14,780.0,2,2,760,12480,25,37,16,32,46,180
+Avril,Pôle Réanimation & Anesthésie,50,9,640.0,2,1,540,9440,17,30,12,23,36,170
+Avril,Pôle Chirurgie,77,10,918.0,1,0,710,13920,21,43,23,39,48,160
+Avril,Pôle Médecine Interne,56,9,635.0,2,1,600,10400,18,32,15,21,44,130
+Avril,Pôle Mère-Enfant (Pédiatrie),52,9,592.0,2,1,510,9760,20,28,13,12,49,150
+Mai,Pôle Urgences & SAMU,65,14,790.0,2,1,740,12640,26,37,16,32,47,210
+Mai,Pôle Réanimation & Anesthésie,51,9,650.0,1,0,520,9600,18,30,12,24,36,180
+Mai,Pôle Chirurgie,77,11,928.0,2,1,680,14080,21,44,23,39,49,175
+Mai,Pôle Médecine Interne,57,9,642.0,1,0,590,10560,19,32,15,21,45,140
+Mai,Pôle Mère-Enfant (Pédiatrie),53,9,600.0,1,0,490,9920,20,29,13,12,50,160
+Juin,Pôle Urgences & SAMU,66,15,805.0,3,1,780,12960,27,38,16,33,48,220
+Juin,Pôle Réanimation & Anesthésie,52,9,660.0,2,1,530,9760,18,31,12,24,37,190
+Juin,Pôle Chirurgie,78,12,940.0,3,1,720,14400,22,45,23,40,50,180
+Juin,Pôle Médecine Interne,58,9,650.0,1,0,600,10720,19,33,15,22,45,150
+Juin,Pôle Mère-Enfant (Pédiatrie),54,9,610.0,2,1,520,10080,21,29,13,13,50,170
