@@ -8,7 +8,26 @@ st.set_page_config(
     page_icon="🏢",
     layout="wide"
 )
+import streamlit as st
+from pathlib import Path
+from style import appliquer_theme_cockpit_dark
+from auth import verifier_authentification, afficher_bouton_deconnexion
 
+# Configuration de la page principale
+st.set_page_config(
+    page_title="Portail Entreprise - Tableaux de Bord",
+    page_icon="🏢",
+    layout="wide"
+)
+
+# Application du thème
+appliquer_theme_cockpit_dark()
+
+# 🔒 VÉRIFICATION DU CODE D'ACCÈS
+verifier_authentification()
+afficher_bouton_deconnexion()
+
+# ... (le reste de votre code app.py continue normalement ci-dessous)
 # Application du thème corporate clair
 appliquer_theme_cockpit_dark()
 

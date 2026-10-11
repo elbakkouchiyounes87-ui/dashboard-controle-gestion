@@ -14,7 +14,11 @@ st.set_page_config(
     layout="wide"
 )
 appliquer_theme_cockpit_dark()
+from auth import verifier_authentification, afficher_bouton_deconnexion
 
+# Immédiatement après st.set_page_config(...)
+verifier_authentification()
+afficher_bouton_deconnexion()
 
 st.markdown("""
     <style>
