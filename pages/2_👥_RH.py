@@ -10,7 +10,7 @@ from style import appliquer_theme_cockpit_dark
 
 # 1. Configuration & Sécurité
 st.set_page_config(
-    page_title="Direction des Ressources Humaines & Paie",
+    page_title="Direction RH & Gestion de la Paie Maroc",
     page_icon="👥",
     layout="wide"
 )
@@ -28,12 +28,12 @@ with col_head1:
     if chemin_logo.exists():
         st.image(str(chemin_logo), width=110)
     else:
-        st.markdown("<h1 style='font-size: 2.8rem; margin:0;'>👥</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='font-size: 2.8rem; margin:0;'>🇲🇦</h1>", unsafe_allow_html=True)
 with col_head2:
-    st.title("👥 Direction des Ressources Humaines & Pilotage de la Paie")
-    st.caption("People Analytics d'Entreprise : analyse des effectifs, absentéisme, simulateur de paie et dynamique salariale (Noria/GVT).")
+    st.title("👥 Direction RH & Contrôle de Paie - Régime Marocain")
+    st.caption("Pilotage social et moteur de paie marocain conforme au CGI (Barème IR réformé, cotisations CNSS, AMO et CIMR).")
 
-# 2. Chargement des données
+# 2. Chargement des données RH
 @st.cache_data
 def charger_donnees_rh():
     chemin_csv = chemin_racine / "donnees_rh.csv"
@@ -56,7 +56,7 @@ with st.sidebar:
 
     depts_dispo = ["Tous les départements"] + list(df_rh["departement"].unique())
     dept_choisi = st.selectbox("Département", depts_dispo, index=0)
-    devise = st.radio("Devise", ["MAD", "EUR", "USD"])
+    devise = "MAD"  # Standard réglementaire marocain
 
 df_vue = df_rh.copy()
 if mois_choisi != "Tous les mois":
@@ -106,11 +106,11 @@ total_h = df_vue["hommes"].sum()
 part_femmes = (total_f / (total_f + total_h) * 100) if (total_f + total_h) > 0 else 0
 
 # 5. Onglets de Navigation
-tab_synthese, tab_paie, tab_demographie, tab_climat, tab_noria, tab_pdf = st.tabs([
+tab_synthese, tab_paie_maroc, tab_demographie, tab_climat, tab_noria, tab_pdf = st.tabs([
     "📊 Synthèse RH & Effectifs",
-    "💵 Gestion & Simulation de Paie",
+    "🇲🇦 Moteur de Paie Marocain",
     "👥 Pyramide des Âges & Talents",
-    "⚠️ Climat, Bradford & Radar",
+    "⚠️ Climat Social & Bradford",
     "🔮 Prévisions Noria & GVT",
     "📄 Bilan Social PDF"
 ])
@@ -121,20 +121,20 @@ with tab_synthese:
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Effectif Total", f"{effectif_total} collaborateurs", f"{total_entrees - total_sorties:+d} solde net")
     k2.metric("Masse Salariale Cumulée", f"{masse_salariale_totale:,.0f} k{devise}".replace(",", " "))
-    k3.metric("Coût Moyen / Collaborateur", f"{cout_moyen_mensuel:,.0f} {devise}/mois".replace(",", " "))
-    k4.metric("Part Variable & Primes", f"{part_primes:.1f}%", help="Part des bonus, commissions et heures supplémentaires")
+    k3.metric("Salaire Moyen / Salarié", f"{cout_moyen_mensuel:,.0f} {devise}/mois".replace(",", " "))
+    k4.metric("Part Variable & Primes", f"{part_primes:.1f}%", help="Commissions, primes de rendement et heures supp.")
 
     st.markdown(f"""
         <div class='diag-box'>
-        <b>Diagnostic People Analytics :</b> L'effectif sous revue totalise <b>{effectif_total} collaborateurs</b> répartis entre 
-        <b>{eff_cadres} Cadres ({(eff_cadres/effectif_total*100):.1f}%)</b>, <b>{eff_tam} Techniciens & Maîtrise</b> et <b>{eff_employes} Employés/Opérateurs</b>. 
-        Le coût salarial moyen est de <b>{cout_moyen_mensuel:,.0f} {devise}/salarié/mois</b> avec une composante variable maîtrisée à <b>{part_primes:.1f}%</b>.
+        <b>Diagnostic RH :</b> L'effectif sous revue totalise <b>{effectif_total} salariés</b> répartis en 
+        <b>{eff_cadres} Cadres ({(eff_cadres/effectif_total*100):.1f}%)</b>, <b>{eff_tam} TAM</b> et <b>{eff_employes} Employés/Opérateurs</b>. 
+        Le salaire moyen de l'entreprise est de <b>{cout_moyen_mensuel:,.0f} {devise}/mois</b>.
         </div>
     """, unsafe_allow_html=True)
 
     col_g1, col_g2 = st.columns(2)
     with col_g1:
-        st.subheader("Structure Socio-Professionnelle par Département")
+        st.subheader("Répartition Catégorielle par Département")
         df_dept = df_rh[df_rh["mois"] == mois_ref].groupby("departement")[["effectif_cadres", "effectif_tam", "effectif_employes"]].sum().reset_index()
         fig_tri = px.bar(
             df_dept, x="departement", y=["effectif_cadres", "effectif_tam", "effectif_employes"],
@@ -159,144 +159,224 @@ with tab_synthese:
         )
         st.plotly_chart(fig_ms, use_container_width=True)
 
-# --- ONGLET 2 : GESTION & SIMULATION DE PAIE ---
-with tab_paie:
-    st.subheader("💵 Simulateur de Bulletin de Paie d'Entreprise")
-    st.caption("Calcul des composantes de paie : Salaire brut, cotisations salariales, impôt sur le revenu, salaire net et charges patronales.")
+# --- ONGLET 2 : MOTEUR DE PAIE RÉGIME MAROCAIN ---
+with tab_paie_maroc:
+    st.subheader("🇲🇦 Simulateur Officiel de Paie & Bulletin de Salaire (Maroc)")
+    st.caption("Conforme au Code Général des Impôts (Barème progressif IR réformé, Plafond CNSS 6 000 MAD, AMO 2,26%, déductions familiales et frais professionnels).")
 
-    col_sim1, col_sim2 = st.columns(2)
-    with col_sim1:
-        st.markdown("#### 1. Rémunération Brute du Collaborateur")
-        statut_sal = st.selectbox("Statut du salarié :", ["Cadre Supérieur / Dirigeant", "Cadre Moyen / Ingénieur", "Technicien / Maîtrise", "Employé / Opérateur"])
+    col_p1, col_p2 = st.columns(2)
+
+    with col_p1:
+        st.markdown("#### 1. Rémunération Brute")
+        statut_sal = st.selectbox(
+            "Profil du salarié :",
+            ["Cadre Supérieur / Manager", "Cadre Moyen / Ingénieur", "Agent de Maîtrise / Technicien", "Employé / Opérateur"]
+        )
         
         bareme_ent = {
-            "Cadre Supérieur / Dirigeant": {"base": 24000.0, "prime": 4000.0, "avantage": 2000.0},
-            "Cadre Moyen / Ingénieur": {"base": 14000.0, "prime": 2000.0, "avantage": 800.0},
-            "Technicien / Maîtrise": {"base": 7500.0, "prime": 1000.0, "avantage": 300.0},
-            "Employé / Opérateur": {"base": 4800.0, "prime": 500.0, "avantage": 0.0}
+            "Cadre Supérieur / Manager": {"base": 25000.0, "prime": 4000.0, "transport": 500.0},
+            "Cadre Moyen / Ingénieur": {"base": 14000.0, "prime": 2000.0, "transport": 500.0},
+            "Agent de Maîtrise / Technicien": {"base": 7500.0, "prime": 1000.0, "transport": 500.0},
+            "Employé / Opérateur": {"base": 4200.0, "prime": 500.0, "transport": 500.0}
         }
-        ref_sal = bareme_ent[statut_sal]
+        ref_s = bareme_ent[statut_sal]
 
-        salaire_base = st.number_input(f"Salaire de base mensuel ({devise})", value=ref_sal["base"], step=200.0)
-        primes_variables = st.number_input(f"Primes d'objectifs & commissions ({devise})", value=ref_sal["prime"], step=100.0)
-        avantages_nature = st.number_input(f"Avantages en nature / indemnités ({devise})", value=ref_sal["avantage"], step=100.0)
+        salaire_base = st.number_input(f"Salaire de base ({devise})", value=ref_s["base"], step=200.0)
+        primes_brutes = st.number_input(f"Primes imposables (rendement, ancienneté) ({devise})", value=ref_s["prime"], step=100.0)
+        indemnite_transport = st.number_input(f"Indemnité de transport justifiée (exonérée) ({devise})", value=ref_s["transport"], step=50.0)
+        
+        # Salaire Brut Global & Imposable
+        salaire_brut_global = salaire_base + primes_brutes + indemnite_transport
+        salaire_brut_imposable = salaire_base + primes_brutes  # Indemnité transport exonérée dans la limite légale
 
-    with col_sim2:
-        st.markdown("#### 2. Déductions & Charges Sociales")
-        taux_retraite_sal = st.number_input("Cotisation Retraite Salarié (%)", value=6.0, step=0.5) / 100.0
-        taux_couverture_sante = st.number_input("Assurance Maladie / Mutuelle (%)", value=3.0, step=0.2) / 100.0
-        nb_personnes_charge = st.slider("Nombre de personnes à charge (déduction fiscale)", 0, 6, 2)
-        charges_patronales_pct = st.number_input("Taux global charges patronales employeur (%)", value=20.0, step=0.5) / 100.0
+    with col_p2:
+        st.markdown("#### 2. Options Sociales & Fiscales")
+        taux_cimr = st.slider("Taux Retraite Complémentaire (CIMR Salarié) (%)", 0.0, 10.0, 3.0, step=0.5) / 100.0
+        nb_personnes_charge = st.slider("Personnes à charge (conjoint + enfants, max 6)", 0, 6, 2)
+        taux_at_patronal = st.slider("Taux Accident du Travail (Employeur) (%)", 0.5, 3.0, 1.5, step=0.1) / 100.0
 
-    # Calculs de Paie
-    brut_total = salaire_base + primes_variables + avantages_nature
-    cotisations_salariales = brut_total * (taux_retraite_sal + taux_couverture_sante)
+    # --- MOTEUR DE CALCUL DE LA PAIE MAROCAINE ---
     
-    # Base imposable et barème progressif indicatif
-    frais_pro = min(brut_total * 0.20, 2500.0)
-    net_imposable = max(0.0, brut_total - cotisations_salariales - frais_pro)
+    # 1. Cotisations salariales
+    base_cnss = min(salaire_brut_imposable, 6000.0)
+    cotisation_cnss_sal = base_cnss * 0.0448        # 4.48% plafonné à 6000 MAD
+    cotisation_amo_sal = salaire_brut_imposable * 0.0226  # 2.26% non plafonné
+    cotisation_cimr_sal = salaire_brut_imposable * taux_cimr
+    total_charges_salariales = cotisation_cnss_sal + cotisation_amo_sal + cotisation_cimr_sal
 
-    if net_imposable <= 2500:
+    # 2. Frais professionnels marocains
+    # 35% si SBI mensuel <= 6 500 MAD (78 000/an), 25% si > 6 500 MAD. Plafonné à 35 000 MAD/an (2 916.67 MAD/mois)
+    taux_frais_pro = 0.35 if salaire_brut_imposable <= 6500.0 else 0.25
+    frais_professionnels = min(salaire_brut_imposable * taux_frais_pro, 2916.67)
+
+    # 3. Salaire Net Imposable (SNI)
+    sni_mensuel = max(0.0, salaire_brut_imposable - total_charges_salariales - frais_professionnels)
+
+    # 4. Barème progressif mensuel de l'IR (Loi de Finances marocaine)
+    if sni_mensuel <= 3333.33:
         ir_brut = 0.0
-    elif net_imposable <= 4166:
-        ir_brut = (net_imposable - 2500) * 0.10
-    elif net_imposable <= 5000:
-        ir_brut = (net_imposable * 0.20) - 416.67
-    elif net_imposable <= 6666:
-        ir_brut = (net_imposable * 0.30) - 916.67
-    elif net_imposable <= 15000:
-        ir_brut = (net_imposable * 0.34) - 1183.33
+    elif sni_mensuel <= 5000.00:
+        ir_brut = (sni_mensuel * 0.10) - 333.33
+    elif sni_mensuel <= 6666.67:
+        ir_brut = (sni_mensuel * 0.20) - 833.33
+    elif sni_mensuel <= 8333.33:
+        ir_brut = (sni_mensuel * 0.30) - 1500.00
+    elif sni_mensuel <= 15000.00:
+        ir_brut = (sni_mensuel * 0.34) - 1833.33
     else:
-        ir_brut = (net_imposable * 0.38) - 1783.33
+        ir_brut = (sni_mensuel * 0.37) - 2283.33
 
-    abattement_famille = nb_personnes_charge * 30.0
-    ir_net = max(0.0, ir_brut - abattement_famille)
+    ir_brut = max(0.0, ir_brut)
 
-    salaire_net = brut_total - cotisations_salariales - ir_net
-    charges_patronales = brut_total * charges_patronales_pct
-    cout_global_employeur = brut_total + charges_patronales
+    # 5. Déduction pour charges de famille (50 MAD par personne / mois, max 300 MAD)
+    deduction_famille = nb_personnes_charge * 50.0
+    ir_net_mensuel = max(0.0, ir_brut - deduction_famille)
 
+    # 6. Salaire Net à Payer
+    salaire_net_a_payer = salaire_brut_global - total_charges_salariales - ir_net_mensuel
+
+    # 7. Cotisations Patronales Marocaines
+    cnss_patronale_alloc_fam = salaire_brut_imposable * 0.0640   # 6.40% non plafonné
+    cnss_patronale_prestat = base_cnss * 0.0860                 # 8.60% plafonné à 6000 MAD
+    taxe_formation_pro = salaire_brut_imposable * 0.0160        # 1.60% non plafonné
+    amo_patronale = salaire_brut_imposable * 0.0411             # 4.11% non plafonné
+    cimr_patronale = salaire_brut_imposable * (taux_cimr * 1.33)  # Part patronale CIMR (~4% si salarié à 3%)
+    at_patronale = salaire_brut_imposable * taux_at_patronal
+
+    total_charges_patronales = (
+        cnss_patronale_alloc_fam + cnss_patronale_prestat +
+        taxe_formation_pro + amo_patronale + cimr_patronale + at_patronale
+    )
+    cout_global_employeur = salaire_brut_global + total_charges_patronales
+
+    # Restitution des résultats
     st.divider()
-    st.subheader("3. Décomposition du Bulletin de Paie")
-    
-    p1, p2, p3, p4 = st.columns(4)
-    p1.metric("Salaire Brut Total", f"{brut_total:,.2f} {devise}".replace(",", " "))
-    p2.metric("Charges Salariales", f"-{cotisations_salariales:,.2f} {devise}".replace(",", " "), delta_color="inverse")
-    p3.metric("Impôt sur le Revenu (IR)", f"-{ir_net:,.2f} {devise}".replace(",", " "), delta_color="inverse")
-    p4.metric("Salaire Net à Payer", f"{salaire_net:,.2f} {devise}".replace(",", " "))
+    st.subheader("3. Résultat du Calcul & Décomposition du Bulletin")
 
-    st.write(f"💼 **Coût Total Entreprise (Super-Brut) :** `{cout_global_employeur:,.2f} {devise}` (dont `{charges_patronales:,.2f} {devise}` de charges patronales).")
+    r1, r2, r3, r4 = st.columns(4)
+    r1.metric("Salaire Brut Global", f"{salaire_brut_global:,.2f} {devise}".replace(",", " "))
+    r2.metric("Cotisations Sociales (CNSS/AMO/CIMR)", f"-{total_charges_salariales:,.2f} {devise}".replace(",", " "), delta_color="inverse")
+    r3.metric("Impôt sur le Revenu Net (IR)", f"-{ir_net_mensuel:,.2f} {devise}".replace(",", " "), delta_color="inverse")
+    r4.metric("Net à Payer (Virement)", f"{salaire_net_a_payer:,.2f} {devise}".replace(",", " "))
 
-    # Édition PDF Bulletin
-    def generer_pdf_bulletin(statut, s_base, s_prime, s_av, brut, c_sal, ir, net, cout_tot, dev, logo_p):
+    st.info(
+        f"💼 **Coût Total Employeur au Maroc :** `{cout_global_employeur:,.2f} MAD` "
+        f"(dont `{total_charges_patronales:,.2f} MAD` de charges sociales patronales CNSS/AMO/Formation/AT)."
+    )
+
+    # Tableau analytique du bulletin
+    df_bulletin = pd.DataFrame({
+        "Libellé de la Rubrique": [
+            "Salaire de base",
+            "Primes & gratifications imposables",
+            "Indemnité de transport (exonérée)",
+            "TOTAL SALAIRE BRUT GLOBAL",
+            "CNSS - Prestations Sociales (4,48% plafonné)",
+            "AMO - Assurance Maladie Obligatoire (2,26%)",
+            f"CIMR - Retraite complémentaire ({taux_cimr*100:.1f}%)",
+            "Frais professionnels déductibles (assiette fiscale)",
+            "Salaire Net Imposable (SNI)",
+            "IR Brut",
+            f"Déduction charges de famille ({nb_personnes_charge} pers.)",
+            "Impôt sur le Revenu Net Retenu (IR)",
+            "NET À PAYER AU SALARIÉ"
+        ],
+        "Base de Calcul": [
+            f"{salaire_base:,.2f}", f"{primes_brutes:,.2f}", f"{indemnite_transport:,.2f}", f"{salaire_brut_global:,.2f}",
+            f"{base_cnss:,.2f}", f"{salaire_brut_imposable:,.2f}", f"{salaire_brut_imposable:,.2f}",
+            f"{salaire_brut_imposable:,.2f}", f"{sni_mensuel:,.2f}", f"{sni_mensuel:,.2f}",
+            "-", f"{sni_mensuel:,.2f}", "-"
+        ],
+        "Part Salariale (MAD)": [
+            f"+{salaire_base:,.2f}", f"+{primes_brutes:,.2f}", f"+{indemnite_transport:,.2f}", f"{salaire_brut_global:,.2f}",
+            f"-{cotisation_cnss_sal:,.2f}", f"-{cotisation_amo_sal:,.2f}", f"-{cotisation_cimr_sal:,.2f}",
+            f"({frais_professionnels:,.2f})", "-", f"({ir_brut:,.2f})", f"(-{deduction_famille:,.2f})",
+            f"-{ir_net_mensuel:,.2f}", f"{salaire_net_a_payer:,.2f}"
+        ]
+    })
+    st.table(df_bulletin)
+
+    # Fonction de génération du Bulletin de Paie PDF Officiel Maroc
+    def generer_bulletin_maroc_pdf(statut, s_base, primes, trans, brut_g, sbi, cnss, amo, cimr, frais_p, sni, ir, net, cout_emp, logo_p):
         pdf = FPDF(orientation='P', unit='mm', format='A4')
         pdf.add_page()
         pdf.set_auto_page_break(auto=True, margin=15)
-        
+
         if logo_p.exists():
-            pdf.image(str(logo_p), x=15, y=12, w=30)
+            pdf.image(str(logo_p), x=15, y=10, w=30)
             pdf.set_xy(50, 15)
         else:
             pdf.set_xy(15, 15)
-            
+
         pdf.set_font('Helvetica', 'B', 15)
         pdf.set_text_color(30, 58, 138)
-        pdf.cell(0, 8, "BULLETIN DE PAIE - SYNTHÈSE MENSUELLE", ln=True)
-        pdf.set_font('Helvetica', '', 10)
+        pdf.cell(0, 8, "BULLETIN DE PAIE (RÉGIME MAROCAIN)", ln=True)
+        pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(100, 116, 139)
         if logo_p.exists():
             pdf.set_x(50)
-        pdf.cell(0, 6, f"Profil : {statut} | Direction des Ressources Humaines", ln=True)
+        pdf.cell(0, 5, f"Période sous revue | Conforme Code du Travail & CGI Maroc | Statut : {statut}", ln=True)
         pdf.ln(10)
-        
+
         pdf.set_draw_color(226, 232, 240)
         pdf.line(15, pdf.get_y(), 195, pdf.get_y())
-        pdf.ln(6)
-        
+        pdf.ln(5)
+
+        # 1. Rémunérations
         pdf.set_font('Helvetica', 'B', 11)
         pdf.set_text_color(15, 23, 42)
-        pdf.cell(0, 7, "1. ÉLÉMENTS DU SALAIRE BRUT", ln=True)
+        pdf.cell(0, 7, "1. GAINS & ÉLÉMENTS DE SALAIRE BRUT", ln=True)
         pdf.set_font('Helvetica', '', 9)
-        pdf.cell(120, 7, "  - Salaire de base contractuel", 1)
-        pdf.cell(60, 7, f"{s_base:,.2f} {dev}", 1, ln=True, align="R")
-        pdf.cell(120, 7, "  - Primes et bonus de performance", 1)
-        pdf.cell(60, 7, f"{s_prime:,.2f} {dev}", 1, ln=True, align="R")
-        pdf.cell(120, 7, "  - Indemnites et avantages", 1)
-        pdf.cell(60, 7, f"{s_av:,.2f} {dev}", 1, ln=True, align="R")
+        pdf.cell(120, 6, "  - Salaire de Base", 1)
+        pdf.cell(60, 6, f"{s_base:,.2f} MAD", 1, ln=True, align="R")
+        pdf.cell(120, 6, "  - Primes & Indemnites imposables", 1)
+        pdf.cell(60, 6, f"{primes:,.2f} MAD", 1, ln=True, align="R")
+        pdf.cell(120, 6, "  - Indemnite de Transport (exoneree)", 1)
+        pdf.cell(60, 6, f"{trans:,.2f} MAD", 1, ln=True, align="R")
         pdf.set_font('Helvetica', 'B', 9)
-        pdf.cell(120, 7, "TOTAL SALAIRE BRUT", 1)
-        pdf.cell(60, 7, f"{brut:,.2f} {dev}", 1, ln=True, align="R")
-        pdf.ln(6)
-        
-        pdf.cell(0, 7, "2. DÉDUCTIONS OBLIGATOIRES & RETENUES", ln=True)
+        pdf.cell(120, 7, "TOTAL SALAIRE BRUT GLOBAL", 1)
+        pdf.cell(60, 7, f"{brut_g:,.2f} MAD", 1, ln=True, align="R")
+        pdf.ln(5)
+
+        # 2. Retenues sociales et fiscales
+        pdf.set_font('Helvetica', 'B', 11)
+        pdf.cell(0, 7, "2. RETENUES SALARIALES (CNSS, AMO, CIMR & IR)", ln=True)
         pdf.set_font('Helvetica', '', 9)
-        pdf.cell(120, 7, "  - Cotisations de securite sociale et retraite", 1)
-        pdf.cell(60, 7, f"-{c_sal:,.2f} {dev}", 1, ln=True, align="R")
-        pdf.cell(120, 7, "  - Retenue Impot sur le Revenu (IR)", 1)
-        pdf.cell(60, 7, f"-{ir:,.2f} {dev}", 1, ln=True, align="R")
-        pdf.ln(6)
-        
+        pdf.cell(120, 6, "  - CNSS Prestations Sociales (4,48% plafonne)", 1)
+        pdf.cell(60, 6, f"-{cnss:,.2f} MAD", 1, ln=True, align="R")
+        pdf.cell(120, 6, "  - AMO Assurance Maladie Obligatoire (2,26%)", 1)
+        pdf.cell(60, 6, f"-{amo:,.2f} MAD", 1, ln=True, align="R")
+        if cimr > 0:
+            pdf.cell(120, 6, "  - Cotisation CIMR (Retraite complementaire)", 1)
+            pdf.cell(60, 6, f"-{cimr:,.2f} MAD", 1, ln=True, align="R")
+        pdf.cell(120, 6, "  - Impot sur le Revenu Net Preleve (IR)", 1)
+        pdf.cell(60, 6, f"-{ir:,.2f} MAD", 1, ln=True, align="R")
+        pdf.ln(5)
+
+        # 3. Net et coût employeur
         pdf.set_font('Helvetica', 'B', 11)
         pdf.set_fill_color(239, 246, 255)
-        pdf.cell(120, 9, "NET À PAYER AU SALARIÉ", 1, fill=True)
-        pdf.cell(60, 9, f"{net:,.2f} {dev}", 1, ln=True, align="R", fill=True)
+        pdf.cell(120, 8, "SALAIRE NET À PAYER (VIREMENT BANCAIRE)", 1, fill=True)
+        pdf.cell(60, 8, f"{net:,.2f} MAD", 1, ln=True, align="R", fill=True)
         pdf.ln(4)
-        
+
         pdf.set_font('Helvetica', 'I', 8)
         pdf.set_text_color(100, 116, 139)
-        pdf.cell(0, 6, f"Coût global employeur supporte par l'entreprise : {cout_tot:,.2f} {dev}", ln=True)
+        pdf.cell(0, 5, f"Information employeur : Coût global entreprise (charges patronales CNSS/AMO/AT incluses) = {cout_emp:,.2f} MAD", ln=True)
         return bytes(pdf.output())
 
-    pdf_paie_bytes = generer_pdf_bulletin(
-        statut_sal, salaire_base, primes_variables, avantages_nature,
-        brut_total, cotisations_salariales, ir_net, salaire_net,
-        cout_global_employeur, devise, chemin_logo
+    pdf_bulletin_maroc = generer_bulletin_maroc_pdf(
+        statut_sal, salaire_base, primes_brutes, indemnite_transport,
+        salaire_brut_global, salaire_brut_imposable,
+        cotisation_cnss_sal, cotisation_amo_sal, cotisation_cimr_sal,
+        frais_professionnels, sni_mensuel, ir_net_mensuel,
+        salaire_net_a_payer, cout_global_employeur, chemin_logo
     )
 
     st.download_button(
-        label="📥 Télécharger le Bulletin de Paie Simulé (PDF)",
-        data=pdf_paie_bytes,
-        file_name=f"Bulletin_Paie_{statut_sal.replace(' ', '_')}.pdf",
+        label="📥 Télécharger le Bulletin de Paie Conforme Maroc (PDF)",
+        data=pdf_bulletin_maroc,
+        file_name=f"Bulletin_Paie_Maroc_{statut_sal.replace(' ', '_')}.pdf",
         mime="application/pdf"
     )
 
@@ -341,21 +421,14 @@ with tab_demographie:
     )
     st.plotly_chart(fig_pyramide, use_container_width=True)
 
-    d1, d2, d3 = st.columns(3)
-    d1.metric("Formation Continue", f"{heures_formation_total} h")
-    d2.metric("Intensité / Collaborateur", f"{heures_formation_par_tete:.1f} h")
-    d3.metric("Mixité (Femmes)", f"{part_femmes:.1f}%")
-
 # --- ONGLET 4 : CLIMAT SOCIAL, BRADFORD & RADAR ---
 with tab_climat:
-    st.subheader("Absentéisme & Facteur de Perturbation de Bradford")
-    st.caption("Le facteur de Bradford mesure la perturbation des micro-arrêts fréquents : B = S² x D.")
-
+    st.subheader("Absentéisme & Facteur de Bradford")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Taux d'Absentéisme", f"{taux_absenteisme:.2f}%")
-    c2.metric("Facteur Bradford Moyen", f"{facteur_bradford:.0f} pts", help="< 150 : Normal | 150-500 : Vigilance | > 500 : Perturbation sévère")
+    c2.metric("Facteur Bradford Moyen", f"{facteur_bradford:.0f} pts")
     c3.metric("Taux de Turnover", f"{turnover_pct:.2f}%")
-    c4.metric("Coût Estimé Turnover", f"{(total_sorties * cout_moyen_mensuel * 6 / 1000):,.0f} k{devise}".replace(",", " "))
+    c4.metric("Coût Estimé Départs", f"{(total_sorties * cout_moyen_mensuel * 6 / 1000):,.0f} k{devise}".replace(",", " "))
 
     col_r1, col_r2 = st.columns([3, 2])
     with col_r1:
@@ -376,29 +449,26 @@ with tab_climat:
         st.plotly_chart(fig_radar, use_container_width=True)
 
     with col_r2:
-        st.markdown("#### Diagnostic de Climat Social")
+        st.markdown("#### Diagnostic QVT")
         if facteur_bradford > 250:
-            st.warning(f"⚠️ **Score Bradford ({facteur_bradford:.0f}) :** Forte récurrence de micro-absences imprévues.")
+            st.warning(f"⚠️ **Score Bradford ({facteur_bradford:.0f}) :** Forte récurrence de micro-absences perturbatrices.")
         else:
-            st.success(f"✅ **Score Bradford ({facteur_bradford:.0f}) :** Faible impact désorganisateur des arrêts.")
-        
-        st.metric("Indice Global QVT & Climat", f"{np.mean(vals):.1f} / 100")
+            st.success(f"✅ **Score Bradford ({facteur_bradford:.0f}) :** Bonne régularité des équipes.")
+        st.metric("Indice Global Climat Social", f"{np.mean(vals):.1f} / 100")
 
 # --- ONGLET 5 : EFFET NORIA & GVT ---
 with tab_noria:
     st.subheader("🔮 Simulateur Budgétaire : Effet Noria & Effet GVT")
-    st.caption("Modélisez l'impact des augmentations d'ancienneté (GVT) et des économies de remplacement de postes (Noria).")
-
     gn1, gn2 = st.columns(2)
     with gn1:
-        st.markdown("##### 1. Effet GVT (Augmentations & Mérite)")
+        st.markdown("##### 1. Effet GVT (Augmentations d'Ancienneté)")
         pct_gvt = st.slider("Augmentation moyenne d'ancienneté / mérite (%)", 0.0, 6.0, 2.0, step=0.1)
         impact_gvt_kmad = (masse_salariale_totale * (pct_gvt / 100.0))
         st.write(f"Surcoût annuel mécanique : **+{impact_gvt_kmad:,.0f} k{devise}**")
 
     with gn2:
         st.markdown("##### 2. Effet Noria (Remplacement Départs)")
-        departs_seniors = st.slider("Nombre de départs seniors remplacés par des profils juniors", 0, 15, 4)
+        departs_seniors = st.slider("Nombre de départs seniors remplacés par des juniors", 0, 15, 4)
         ecart_mensuel = st.number_input(f"Économie mensuelle moyenne par remplacement ({devise})", value=4000, step=500)
         economie_noria_kmad = (departs_seniors * ecart_mensuel * 12) / 1000.0
         st.write(f"Économie Noria annuelle : **-{economie_noria_kmad:,.0f} k{devise}**")
@@ -429,13 +499,13 @@ with tab_pdf:
             
         pdf.set_font('Helvetica', 'B', 16)
         pdf.set_text_color(30, 58, 138)
-        pdf.cell(0, 10, 'BILAN SOCIAL & PEOPLE ANALYTICS', ln=True, align='L' if logo_p.exists() else 'C')
+        pdf.cell(0, 10, 'BILAN SOCIAL & PEOPLE ANALYTICS (MAROC)', ln=True, align='L' if logo_p.exists() else 'C')
         
         pdf.set_font('Helvetica', '', 10)
         pdf.set_text_color(100, 116, 139)
         if logo_p.exists():
             pdf.set_x(55)
-        pdf.cell(0, 6, f'Période : {periode} | Périmètre : {dpt} | Confidentiel Direction', ln=True)
+        pdf.cell(0, 6, f'Période : {periode} | Périmètre : {dpt} | Direction Générale', ln=True)
         pdf.ln(12)
         
         pdf.set_draw_color(226, 232, 240)
@@ -449,11 +519,9 @@ with tab_pdf:
         
         pdf.set_font('Helvetica', '', 10)
         pdf.cell(90, 8, f'  - Effectif Total : {eff} salaries', 1)
-        ms_c = f'  - Masse Salariale : {ms:,.0f} k{dev}'.encode('latin-1', 'replace').decode('latin-1')
-        pdf.cell(90, 8, ms_c, 1, ln=True)
-        cm_c = f'  - Cout Moyen / Salarie : {cm:,.0f} {dev}/mois'.encode('latin-1', 'replace').decode('latin-1')
-        pdf.cell(90, 8, cm_c, 1)
-        pdf.cell(90, 8, '  - Taux Encadrement : Conforme', 1, ln=True)
+        pdf.cell(90, 8, f'  - Masse Salariale : {ms:,.0f} k{dev}', 1, ln=True)
+        pdf.cell(90, 8, f'  - Salaire Moyen : {cm:,.0f} {dev}/mois', 1)
+        pdf.cell(90, 8, '  - Conformite Reglementaire : CNSS/AMO', 1, ln=True)
         pdf.ln(6)
         
         pdf.set_font('Helvetica', 'B', 12)
@@ -464,19 +532,19 @@ with tab_pdf:
         pdf.cell(90, 8, f'  - Taux Absenteisme : {abs_tx:.2f} %', 1)
         pdf.cell(90, 8, f'  - Taux de Turnover : {to_tx:.2f} %', 1, ln=True)
         pdf.cell(90, 8, f'  - Facteur Bradford : {brad:.0f} pts', 1)
-        pdf.cell(90, 8, '  - Climat Global : Favorable', 1, ln=True)
+        pdf.cell(90, 8, '  - Stabilite Globale : Favorable', 1, ln=True)
         pdf.ln(6)
         
         pdf.set_font('Helvetica', 'B', 12)
-        pdf.cell(0, 8, '3. Avis & Recommandations du DRH', ln=True)
+        pdf.cell(0, 8, '3. Recommandations de la Direction RH', ln=True)
         pdf.ln(2)
         
         pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(51, 65, 85)
         avis = (
-            f"L'effectif stabilise a {eff} collaborateurs produit une activite reguliere sur le perimetre {dpt}.\n"
-            f"L'absenteisme ressort a {abs_tx:.2f}% avec un score Bradford de {brad:.0f} pts demontrant une bonne continuite d'equipe. "
-            "Il est preconise de poursuivre les arbitrages Noria sur les remplacements seniors afin de neutraliser l'impact mecanique du GVT."
+            f"L'effectif stabilise a {eff} salaries temoigne d'une bonne dynamique operationnelle.\n"
+            f"Les cotisations et impots sont etablis conformement a la reglementation fiscale et sociale marocaine (CNSS, AMO et IR).\n"
+            "Il est preconise de poursuivre les arbitrages Noria sur les recrutements juniors afin de maitriser la derive mecanique du GVT."
         )
         pdf.multi_cell(180, 5, avis, 1)
         return bytes(pdf.output())
@@ -490,6 +558,6 @@ with tab_pdf:
     st.download_button(
         label="📥 Télécharger le Bilan Social (PDF)",
         data=pdf_social_bytes,
-        file_name=f"Bilan_Social_{mois_choisi}_{dept_choisi.replace(' ', '_')}.pdf",
+        file_name=f"Bilan_Social_Maroc_{mois_choisi}_{dept_choisi.replace(' ', '_')}.pdf",
         mime="application/pdf"
     )
